@@ -20,13 +20,16 @@ Feature freeze: 19 October 2026 night
 - GitHub repository created.
 - SSH authentication configured.
 - Initial project structure committed.
+- FastAPI health endpoint and local CORS foundation added.
+- SQLite-backed learner creation, Science subject listing, and a seeded Science lesson added.
+- Adaptive Science quiz questions, answer evaluation, and persisted learner progress added.
+- Optional lazy local speech-to-text interface and deterministic voice interpretation added.
 
 ## Next
 1. Add and commit API contract and status documents.
 2. Test GPU and local model compatibility.
-3. Create FastAPI backend skeleton and health endpoint.
-4. Build frontend against mock responses.
-5. Integrate learning, voice and progress workflows.
+3. Build frontend against the implemented local API and mock the remaining endpoints.
+4. Test local Windows CPU/CUDA speech-recognition compatibility, then integrate the educational Q&A workflow.
 
 ## Risks
 - RTX 5060 compatibility with the speech inference stack.

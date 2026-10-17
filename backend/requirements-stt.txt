@@ -1,0 +1,3 @@
+# Optional local transcription provider. Install after confirming local CPU/CUDA compatibility.
+faster-whisper>=1.1,<2.0
+av>=11,<19
