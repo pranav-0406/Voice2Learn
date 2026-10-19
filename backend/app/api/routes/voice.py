@@ -21,6 +21,8 @@ from app.stt.provider import (
     get_stt_provider,
 )
 from app.voice.interpreter import interpret_text
+from app.voice.understanding import understand
+from app.qa.ollama import OllamaProvider
 
 router = APIRouter(prefix="/voice", tags=["voice"])
 
@@ -87,11 +89,29 @@ async def transcribe_audio(
 
 @router.post("/interpret", response_model=VoiceInterpretResponse)
 def interpret_voice(payload: VoiceInterpretRequest) -> VoiceInterpretResponse:
-    """Interpret text with deterministic rules; this endpoint never submits quiz answers."""
+    """Classify with fast rules first and optional structured local reasoning second."""
     interpretation = interpret_text(payload.text, payload.context.active_quiz)
+    understanding = understand(
+        payload.text,
+        payload.context.model_dump(),
+        interpretation,
+        OllamaProvider(get_settings()),
+    ) if interpretation.intent in {"unknown", "question"} else None
+    if understanding:
+        interpretation = understanding.interpretation
+        category = understanding.category
+        response = understanding.response
+        clarification = understanding.clarification
+    else:
+        category = None
+        response = None
+        clarification = None
     return VoiceInterpretResponse(
         intent=interpretation.intent,
         confidence=interpretation.confidence,
         command=interpretation.command,
         answer=interpretation.answer,
+        category=category,
+        response=response,
+        clarification=clarification,
     )

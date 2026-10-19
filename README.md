@@ -23,6 +23,22 @@ The backend is available at `http://localhost:8000`; check readiness at
 `http://localhost:8000/api/health` and open the interactive API documentation at
 `http://localhost:8000/docs`.
 
+### Enable local Ollama understanding
+
+Ollama is configured locally at `http://127.0.0.1:11434`. Install a model once
+and set the provider before starting the backend:
+
+```powershell
+ollama pull gemma3:4b
+$env:VOICE2LEARN_OLLAMA_MODEL = "gemma3:4b"
+python -m uvicorn app.main:app --reload
+```
+
+The backend sends structured prompts with Ollama's JSON response format enabled.
+Keep cloud credentials out of the browser and source control. For cloud models,
+sign in with `ollama signin` or configure `OLLAMA_API_KEY` in the backend
+process only; the current provider is intentionally local-only.
+
 Run the automated backend checks from `backend` with:
 
 ```powershell
@@ -59,3 +75,25 @@ With the server running and a short local WAV file available, test transcription
 ```powershell
 curl.exe -X POST http://localhost:8000/api/voice/transcribe -F "audio=@C:\path\to\sample.wav;type=audio/wav"
 ```
+
+To compare model/device latency on the same recordings without printing transcript
+content, run the reproducible benchmark from `backend`:
+
+```powershell
+python tools/benchmark_stt.py C:\path\to\sample.wav --warmup 1 --runs 3
+```
+
+It reports cold model-load time and warm transcription time for `tiny`, `base`,
+and `small` on CPU and CUDA. A device/model marked unavailable must not be
+treated as a performance result.
+
+## Context-aware voice understanding
+
+Voice interpretation uses a two-stage design. Clear, common actions use the
+fast deterministic interpreter. When `VOICE2LEARN_OLLAMA_MODEL` is configured,
+uncertain requests are sent to the local Ollama model with the current route,
+quiz/lesson context, and the last four utterances. The model must return
+structured JSON; commands are checked against the application allowlist before
+the frontend can execute them. Without Ollama, the app keeps the deterministic
+commands and identifies ordinary questions, but it does not pretend to
+understand arbitrary requests.

@@ -45,6 +45,9 @@ class FasterWhisperProvider:
         self._model_size = settings.stt_model_size
         self._device = settings.stt_device
         self._compute_type = settings.stt_compute_type
+        self._beam_size = settings.stt_beam_size
+        self._vad_filter = settings.stt_vad_filter
+        self._cpu_threads = settings.stt_cpu_threads
         self._model: object | None = None
 
     def _get_model(self):
@@ -62,11 +65,13 @@ class FasterWhisperProvider:
             )
             raise STTUnavailableError("Optional faster-whisper dependency is not installed") from error
         try:
-            self._model = WhisperModel(
-                self._model_size,
-                device=self._device,
-                compute_type=self._compute_type,
-            )
+            model_options = {
+                "device": self._device,
+                "compute_type": self._compute_type,
+            }
+            if self._cpu_threads:
+                model_options["cpu_threads"] = self._cpu_threads
+            self._model = WhisperModel(self._model_size, **model_options)
         except Exception as error:
             logger.exception(
                 "stt_model_initialization_failed model=%s device=%s compute_type=%s",
@@ -80,7 +85,12 @@ class FasterWhisperProvider:
     def transcribe(self, audio_path: Path) -> TranscriptionResult:
         model = self._get_model()
         try:
-            segments, info = model.transcribe(str(audio_path), beam_size=1)
+            segments, info = model.transcribe(
+                str(audio_path),
+                beam_size=self._beam_size,
+                vad_filter=self._vad_filter,
+                condition_on_previous_text=False,
+            )
             text = " ".join(segment.text.strip() for segment in segments if segment.text.strip())
         except Exception as error:
             logger.exception(

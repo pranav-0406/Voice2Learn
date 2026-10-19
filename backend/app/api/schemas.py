@@ -103,6 +103,10 @@ class TranscriptionResponse(BaseModel):
 
 class VoiceContext(BaseModel):
     active_quiz: bool = False
+    screen: str = "unknown"
+    lesson_topic: str | None = None
+    question: str | None = None
+    recent_turns: list[str] = Field(default_factory=list, max_length=4)
 
 
 class VoiceInterpretRequest(BaseModel):
@@ -115,3 +119,6 @@ class VoiceInterpretResponse(BaseModel):
     confidence: float
     command: str | None = None
     answer: str | None = None
+    category: Literal["application", "learning", "follow_up", "clarification", "unsupported"] | None = None
+    response: str | None = None
+    clarification: str | None = None

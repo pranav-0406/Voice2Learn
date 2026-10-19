@@ -22,7 +22,13 @@ class Settings:
     stt_model_size: str = "small"
     stt_device: str = "cpu"
     stt_compute_type: str = "int8"
+    stt_beam_size: int = 1
+    stt_vad_filter: bool = True
+    stt_cpu_threads: int = 0
     stt_max_upload_bytes: int = 10 * 1024 * 1024
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    ollama_model: str | None = None
+    ollama_timeout_seconds: int = 30
 
 
 def _cors_origins_from_environment() -> tuple[str, ...]:
@@ -51,6 +57,13 @@ def _positive_integer_from_environment(name: str, default: int) -> int:
     return value if value > 0 else default
 
 
+def _boolean_from_environment(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.casefold() in {"1", "true", "yes", "on"}
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings(
@@ -59,7 +72,15 @@ def get_settings() -> Settings:
         stt_model_size=os.getenv("VOICE2LEARN_STT_MODEL", "small"),
         stt_device=os.getenv("VOICE2LEARN_STT_DEVICE", "cpu"),
         stt_compute_type=os.getenv("VOICE2LEARN_STT_COMPUTE_TYPE", "int8"),
+        stt_beam_size=_positive_integer_from_environment("VOICE2LEARN_STT_BEAM_SIZE", 1),
+        stt_vad_filter=_boolean_from_environment("VOICE2LEARN_STT_VAD_FILTER", True),
+        stt_cpu_threads=_positive_integer_from_environment("VOICE2LEARN_STT_CPU_THREADS", 0),
         stt_max_upload_bytes=_positive_integer_from_environment(
             "VOICE2LEARN_STT_MAX_UPLOAD_BYTES", 10 * 1024 * 1024
+        ),
+        ollama_base_url=os.getenv("VOICE2LEARN_OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/"),
+        ollama_model=os.getenv("VOICE2LEARN_OLLAMA_MODEL") or None,
+        ollama_timeout_seconds=_positive_integer_from_environment(
+            "VOICE2LEARN_OLLAMA_TIMEOUT_SECONDS", 30
         ),
     )
