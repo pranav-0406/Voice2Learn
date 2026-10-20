@@ -350,3 +350,36 @@ def test_stt_default_prompt_contains_tamil_nadu_and_curriculum_terms(monkeypatch
     assert "fraction" in prompt
     assert "option A" in prompt
 
+
+def test_groq_invalid_media_file_handled_as_empty_speech(client, monkeypatch) -> None:
+    """Verify that Groq 400 invalid_media_file is treated gracefully as empty speech instead of a server 502/500."""
+    monkeypatch.setenv("STT_PROVIDER", "groq")
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_valid_mock_key")
+    get_settings.cache_clear()
+    get_stt_provider.cache_clear()
+
+    mock_client = MagicMock()
+    req = httpx.Request("POST", "https://api.groq.com/openai/v1/audio/transcriptions")
+    body = {
+        "error": {
+            "message": "could not process file - is it a valid media file?",
+            "type": "invalid_request_error",
+            "code": "invalid_media_file",
+        }
+    }
+    mock_client.audio.transcriptions.create.side_effect = groq.APIStatusError(
+        "Error code: 400 - " + str(body),
+        response=httpx.Response(400, request=req),
+        body=body,
+    )
+    monkeypatch.setattr("groq.Groq", lambda **kwargs: mock_client)
+
+    response = client.post(
+        "/api/voice/transcribe",
+        files={"audio": ("sample.wav", b"RIFF sample audio", "audio/wav")},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "No speech was detected"
+
+

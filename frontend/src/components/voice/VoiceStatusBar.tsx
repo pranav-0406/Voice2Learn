@@ -94,6 +94,9 @@ export function VoiceStatusBar() {
               (allowedStaticRoutes.includes(agentResp.target_url) ||
                 /^\/concept\/[a-zA-Z0-9_-]+$/.test(agentResp.target_url))
 
+            console.log(`🎙️ [Student Speech]: "${transcript}"`)
+            console.log(`🤖 [AI Browser Agent]: Target URL: ${agentResp.target_url || 'None'} | Response: "${agentMessage}"`)
+
             if (agentResp.target_url && isValidRoute && agentResp.status === 'completed') {
               navigate(agentResp.target_url)
               setMessage(agentMessage)
@@ -132,7 +135,19 @@ export function VoiceStatusBar() {
           const parsed = JSON.parse(raw)
           if (parsed?.id) learnerId = parsed.id
         }
-        const posResp = await getActivePosition(learnerId)
+
+        const lowerTranscript = transcript?.toLowerCase() || ''
+        const targetSubject = lowerTranscript.includes('science')
+          ? 'science'
+          : lowerTranscript.includes('math')
+          ? 'mathematics'
+          : lowerTranscript.includes('english')
+          ? 'english'
+          : lowerTranscript.includes('social')
+          ? 'social_science'
+          : undefined
+
+        const posResp = await getActivePosition(learnerId, targetSubject)
         if (posResp?.concept_id) {
           navigate(`/concept/${posResp.concept_id}`)
           return
@@ -140,7 +155,17 @@ export function VoiceStatusBar() {
       } catch {
         // fallback
       }
-      navigate('/concept/sci-ch01-c01')
+
+      const lower = transcript?.toLowerCase() || ''
+      if (lower.includes('math')) {
+        navigate('/concept/math-ch01-c01')
+      } else if (lower.includes('english')) {
+        navigate('/concept/eng-ch01-c01')
+      } else if (lower.includes('social')) {
+        navigate('/concept/soc-ch01-c01')
+      } else {
+        navigate('/concept/sci-ch01-c01')
+      }
     }
 
     const actions: Record<string, () => void> = {
@@ -179,6 +204,8 @@ export function VoiceStatusBar() {
       PREV_CONCEPT: () => dispatch('PREV_CONCEPT'),
     }
 
+    console.log(`🎙️ [Student Speech]: "${transcript}"`)
+    console.log(`👉 [Website Action]: Executed ${command}`)
     actions[command]?.()
     voiceDiagnostic(`frontend-dispatch:${command}`, pipelineStartedAt)
     if (command !== 'HELP') {

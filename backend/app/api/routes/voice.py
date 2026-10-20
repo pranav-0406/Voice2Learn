@@ -116,6 +116,11 @@ async def transcribe_audio(
 
     if not result.text.strip():
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="No speech was detected")
+
+    print(f"\n{'='*70}", flush=True)
+    print(f"🎙️  [SPEECH TRANSCRIBED AS TEXT]: \"{result.text.strip()}\"", flush=True)
+    print(f"{'='*70}", flush=True)
+
     return TranscriptionResponse(
         text=result.text,
         metadata=TranscriptionMetadata(
@@ -161,6 +166,14 @@ def interpret_voice(
         response = None
         clarification = None
         source_meta = None
+
+    if interpretation.command:
+        print(f"👉  [WEBSITE ACTION DISPATCHED]: Command -> {interpretation.command} (Confidence: {interpretation.confidence:.2f})", flush=True)
+    elif interpretation.intent == "question" and response:
+        print(f"📖  [WEBSITE CURRICULUM ANSWER]: \"{response}\"", flush=True)
+    elif clarification:
+        print(f"💬  [WEBSITE RESPONSE TO USER]: \"{clarification}\"", flush=True)
+
     return VoiceInterpretResponse(
         intent=interpretation.intent,
         confidence=interpretation.confidence,

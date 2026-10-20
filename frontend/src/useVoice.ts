@@ -6,12 +6,12 @@ import { voiceDiagnostic } from './voiceDiagnostics'
 export type VoiceState = 'idle' | 'recording' | 'processing' | 'done' | 'error'
 type VoiceResult = { text: string; interpretation: Interpretation; startedAt: number }
 
-const SEGMENT_DURATION_MS = 4500
-const RETRY_DELAY_MS = 1200
-const SILENCE_DURATION_MS = 650
-const MIN_UTTERANCE_MS = 500
-export const DEFAULT_SPEECH_RMS_THRESHOLD = 0.025
-export const ECHO_COOLDOWN_MS = 350
+const SEGMENT_DURATION_MS = 6500
+const RETRY_DELAY_MS = 200
+const SILENCE_DURATION_MS = 950
+const MIN_UTTERANCE_MS = 700
+export const DEFAULT_SPEECH_RMS_THRESHOLD = 0.008
+export const ECHO_COOLDOWN_MS = 250
 
 export function getStoredMicThreshold(): number {
   if (typeof window === 'undefined') return DEFAULT_SPEECH_RMS_THRESHOLD
@@ -50,6 +50,7 @@ export function useVoice(context: VoiceContext = {}) {
   const recentTurns = useRef<string[]>([])
   const audioContext = useRef<AudioContext | null>(null)
   const vadFrame = useRef<number | null>(null)
+  const heardSpeechRef = useRef(false)
 
   const [enabled, setEnabled] = useState(false)
   const [state, setState] = useState<VoiceState>('idle')
@@ -101,6 +102,7 @@ export function useVoice(context: VoiceContext = {}) {
 
       setIsEchoGated(false)
       setError(null)
+      heardSpeechRef.current = false
       setState('recording')
       const recordingStartedAt = voiceDiagnostic('recording-start')
 
@@ -148,13 +150,16 @@ export function useVoice(context: VoiceContext = {}) {
           }
 
           if (id !== loopId.current || !enabledRef.current) return
-          if (!chunks.current.length) {
-            setError('No speech was captured. Retrying…')
-            setState('error')
-            timer.current = window.setTimeout(
-              () => void recordSegment(id),
-              RETRY_DELAY_MS
-            )
+
+          // If no human speech was detected by VAD, don't upload silence/background noise to Groq
+          if (!heardSpeechRef.current || !chunks.current.length) {
+            chunks.current = []
+            if (id === loopId.current && enabledRef.current && !isEchoMuted.current) {
+              timer.current = window.setTimeout(
+                () => void recordSegment(id),
+                250
+              )
+            }
             return
           }
 
@@ -163,13 +168,13 @@ export function useVoice(context: VoiceContext = {}) {
           })
           chunks.current = []
 
-          // Discard tiny/empty audio fragments (<2KB) that cause Groq Whisper 400 Bad Request
-          if (audio.size < 2048) {
+          // Discard tiny/empty audio fragments (<3.5KB) that cause Groq Whisper 400 Bad Request
+          if (audio.size < 3500) {
             processing.current = false
             if (id === loopId.current && enabledRef.current && !isEchoMuted.current) {
               timer.current = window.setTimeout(
                 () => void recordSegment(id),
-                RETRY_DELAY_MS
+                150
               )
             }
             return
@@ -203,6 +208,19 @@ export function useVoice(context: VoiceContext = {}) {
             })
             .catch((cause) => {
               if (id !== loopId.current || !enabledRef.current) return
+              const message = cause instanceof Error ? cause.message : ''
+              // If no speech was detected or an audio snippet was unprocessable between commands,
+              // don't enter an error state or display jarring error banners.
+              // Seamlessly stay in idle/listening mode so continuous speech continues smoothly.
+              if (
+                message.includes('No speech was detected') ||
+                message.includes('could not be transcribed') ||
+                message.includes('422') ||
+                message.includes('Unprocessable')
+              ) {
+                setState('idle')
+                return
+              }
               setError(
                 cause instanceof Error
                   ? cause.message
@@ -221,7 +239,7 @@ export function useVoice(context: VoiceContext = {}) {
             })
         }
 
-        next.start(100)
+        next.start()
 
         // Web Audio API VAD with dynamic ambient noise floor adaptation
         const AudioContextConstructor = window.AudioContext
@@ -257,17 +275,19 @@ export function useVoice(context: VoiceContext = {}) {
             const rms = Math.sqrt(sum / samples.length)
             const elapsed = performance.now() - recordingStartedAt
 
-            // Sample initial 300ms ambient background to adapt threshold
-            if (elapsed < 300) {
+            // Sample initial 200ms ambient background to adapt threshold gently
+            if (elapsed < 200) {
               ambientRmsSum += rms
               ambientSampleCount++
-              if (ambientSampleCount > 6) {
+              if (ambientSampleCount > 4) {
                 const avgAmbient = ambientRmsSum / ambientSampleCount
-                dynamicThreshold = Math.max(micThreshold.current, avgAmbient * 2.2)
+                // Keep threshold sensitive: never exceed 0.016 so user doesn't have to shout
+                dynamicThreshold = Math.min(0.016, Math.max(micThreshold.current, avgAmbient * 1.3))
               }
             }
 
             if (rms >= dynamicThreshold) {
+              heardSpeechRef.current = true
               heardSpeech = true
               silenceStartedAt = null
             } else if (heardSpeech && elapsed >= MIN_UTTERANCE_MS) {

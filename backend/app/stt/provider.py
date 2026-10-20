@@ -226,6 +226,26 @@ class GroqWhisperProvider:
         except APIStatusError as error:
             status_code = getattr(error, "status_code", 500)
             err_msg = getattr(error, "message", str(error))
+            body = getattr(error, "body", None)
+            is_invalid_media = (
+                "invalid_media_file" in err_msg.lower()
+                or "could not process file" in err_msg.lower()
+                or "is it a valid media file" in err_msg.lower()
+                or (isinstance(body, dict) and body.get("error", {}).get("code") == "invalid_media_file")
+            )
+            if status_code == 400 and is_invalid_media:
+                logger.info(
+                    "groq_stt_invalid_or_empty_media status_code=400 model=%s (treating as silent fragment): %s",
+                    self._model,
+                    err_msg,
+                )
+                return TranscriptionResult(
+                    text="",
+                    language="en",
+                    duration_seconds=0.0,
+                    model=self._model,
+                    device="cloud",
+                )
             logger.warning("groq_stt_status_error status_code=%s model=%s: %s", status_code, self._model, err_msg)
             if status_code >= 500:
                 raise STTProviderError(
