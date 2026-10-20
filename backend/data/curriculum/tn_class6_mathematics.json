@@ -1,0 +1,151 @@
+{
+  "subject": {
+    "id": "mathematics",
+    "name": "Mathematics",
+    "code": "MATH",
+    "icon": "Calculator",
+    "accent_color": "#10B981",
+    "display_order": 2
+  },
+  "term": 1,
+  "chapters": [
+    {
+      "id": "math-term1-ch01",
+      "chapter_number": 1,
+      "title": "Chapter 1: Numbers",
+      "description": "Large numbers, Indian & International systems, place values, BIDMAS order of operations, and whole number properties.",
+      "textbook_pages": "pp. 1-28",
+      "lesson_id": "math-large-numbers",
+      "concepts": [
+        {
+          "id": "math-ch01-c01",
+          "title": "Large Numbers & Number Systems",
+          "summary": "Comparing Indian and International place value periods, reading numbers up to crores and billions.",
+          "key_points": [
+            "Indian system periods: Ones, Thousands, Lakhs, Crores.",
+            "International system periods: Ones, Thousands, Millions, Billions.",
+            "1 Crore = 10 Million; 100 Lakhs = 1 Crore."
+          ],
+          "display_order": 1
+        },
+        {
+          "id": "math-ch01-c02",
+          "title": "BIDMAS Rule & Order of Operations",
+          "summary": "Mathematical expressions must be evaluated in the strict order: Brackets, Indices, Division, Multiplication, Addition, Subtraction.",
+          "key_points": [
+            "B: Brackets first () [] {}",
+            "I: Indices or Powers",
+            "D & M: Division and Multiplication from left to right",
+            "A & S: Addition and Subtraction from left to right"
+          ],
+          "display_order": 2
+        }
+      ]
+    },
+    {
+      "id": "math-term1-ch02",
+      "chapter_number": 2,
+      "title": "Chapter 2: Introduction to Algebra",
+      "description": "Patterns in shapes and numbers, algebraic variables, expressions, and solving unknowns.",
+      "textbook_pages": "pp. 29-46",
+      "lesson_id": "math-algebra-intro",
+      "concepts": [
+        {
+          "id": "math-ch02-c01",
+          "title": "Variables & Algebraic Expressions",
+          "summary": "Using letters to represent unknown or changing values and translating word situations into algebraic statements.",
+          "key_points": [
+            "A variable is an unknown value denoted by letters like x, y, n.",
+            "A constant has a fixed numerical value.",
+            "Algebraic expressions combine variables and constants using arithmetic operations."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "math-term1-ch03",
+      "chapter_number": 3,
+      "title": "Chapter 3: Ratio and Proportion",
+      "description": "Ratio comparison, simplest form, proportions, product of extremes and means, and unitary method.",
+      "textbook_pages": "pp. 47-68",
+      "lesson_id": "math-ratio-proportion",
+      "concepts": [
+        {
+          "id": "math-ch03-c01",
+          "title": "Ratio, Proportion & Unitary Method",
+          "summary": "Comparing quantities of the same unit through division and solving real-world rates using unit cost.",
+          "key_points": [
+            "Ratio a:b compares two quantities of the same kind and unit; it has no unit.",
+            "In proportion a:b = c:d, Product of Extremes (a * d) equals Product of Means (b * c).",
+            "The unitary method finds the value of a single unit before calculating the total required."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "math-term1-ch04",
+      "chapter_number": 4,
+      "title": "Chapter 4: Geometry",
+      "description": "Lines, line segments, rays, parallel and perpendicular lines, angles classification, and collinear points.",
+      "textbook_pages": "pp. 69-92",
+      "lesson_id": null,
+      "concepts": [
+        {
+          "id": "math-ch04-c01",
+          "title": "Lines and Angles",
+          "summary": "Fundamental geometric building blocks: points, lines, segments, rays, and angle classifications from acute to reflex.",
+          "key_points": [
+            "A line extends infinitely in both directions; a line segment has two fixed end points.",
+            "Acute angle (< 90°), Right angle (90°), Obtuse angle (> 90° and < 180°), Straight angle (180°).",
+            "Parallel lines never intersect; perpendicular lines meet at 90 degrees."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "math-term1-ch05",
+      "chapter_number": 5,
+      "title": "Chapter 5: Statistics",
+      "description": "Data collection, tally marks, frequency distribution, pictographs, and bar graphs.",
+      "textbook_pages": "pp. 93-114",
+      "lesson_id": null,
+      "concepts": [
+        {
+          "id": "math-ch05-c01",
+          "title": "Data Representation & Bar Graphs",
+          "summary": "Collecting raw numerical observations, organizing them using tally marks, and visualizing data with bar graphs and pictographs.",
+          "key_points": [
+            "Tally marks group counts into bundles of five for easy tabulation.",
+            "Pictographs use pictures or symbols where each symbol represents a scaled quantity.",
+            "Bar graphs display categorical data using rectangular bars of uniform width."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "math-term1-ch06",
+      "chapter_number": 6,
+      "title": "Chapter 6: Information Processing",
+      "description": "Systematic listing, tree diagrams, counting principles, and organizing combinations without omission.",
+      "textbook_pages": "pp. 115-130",
+      "lesson_id": null,
+      "concepts": [
+        {
+          "id": "math-ch06-c01",
+          "title": "Systematic Listing & Tree Diagrams",
+          "summary": "Finding all possible outcomes or arrangements methodically using tree diagrams without missing any possibilities.",
+          "key_points": [
+            "Systematic counting ensures every possible combination is counted exactly once.",
+            "Tree diagrams branch out to show multi-stage decision problems visually.",
+            "Fundamental counting principle simplifies large permutation calculations."
+          ],
+          "display_order": 1
+        }
+      ]
+    }
+  ]
+}

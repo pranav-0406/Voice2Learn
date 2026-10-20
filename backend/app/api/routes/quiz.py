@@ -18,6 +18,8 @@ router = APIRouter(tags=["quiz"])
 def get_next_question(
     learner_id: UUID = Query(),
     subject: str = Query(min_length=1),
+    concept_id: str | None = Query(None),
+    chapter_id: str | None = Query(None),
     database: Database = Depends(get_database),
 ) -> QuizNextResponse:
     """Return an unanswered question near the learner's current target difficulty."""
@@ -27,7 +29,12 @@ def get_next_question(
     subject_id = subject.casefold().strip()
     if not database.subject_exists(subject_id):
         raise HTTPException(status_code=400, detail="Unsupported subject")
-    question = database.get_next_question(learner_id_value, subject_id)
+    question = database.get_next_question(
+        learner_id_value,
+        subject_id,
+        concept_id=concept_id,
+        chapter_id=chapter_id,
+    )
     if question is None:
         return QuizNextResponse(question=None, message="No unanswered questions remain for this subject")
     return QuizNextResponse(question=question, message="Question ready")

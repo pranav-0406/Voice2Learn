@@ -1,0 +1,183 @@
+{
+  "subject": {
+    "id": "social_science",
+    "name": "Social Science",
+    "code": "SOC",
+    "icon": "Globe",
+    "accent_color": "#F59E0B",
+    "display_order": 4
+  },
+  "term": 1,
+  "chapters": [
+    {
+      "id": "soc-term1-ch01",
+      "chapter_number": 1,
+      "title": "History Unit 1: What is History?",
+      "description": "Definition from Historia, pre-history, archaeological and literary sources, Emperor Ashoka and the Dharma Chakra.",
+      "textbook_pages": "pp. 121-134",
+      "lesson_id": "social-what-is-history",
+      "concepts": [
+        {
+          "id": "soc-ch01-c01",
+          "title": "What is History & Archaeological Sources",
+          "summary": "History is the systematic study of the past based on inscriptions, coins, monuments, and literary records.",
+          "key_points": [
+            "The term History is derived from Greek word Historia, meaning learning by inquiry.",
+            "Emperor Ashoka embraced Buddhism after the Kalinga war and spread message of peace.",
+            "The 24-spoke Dharma Chakra on the Indian national flag is taken from Ashoka's Sarnath pillar."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "soc-term1-ch02",
+      "chapter_number": 2,
+      "title": "History Unit 2: Human Evolution",
+      "description": "Stages of human evolution from Australopithecus to Homo sapiens, discovery of fire, invention of wheel, and cave rock art.",
+      "textbook_pages": "pp. 135-146",
+      "lesson_id": null,
+      "concepts": [
+        {
+          "id": "soc-ch02-c01",
+          "title": "Stages of Human Evolution & Prehistoric Life",
+          "summary": "The journey of mankind from hunter-gatherers using stone tools and fire to settled agrarian communities.",
+          "key_points": [
+            "Homo habilis made primitive stone tools; Homo erectus discovered fire using flint stones.",
+            "Invention of the potters wheel revolutionized transport, food storage, and early craftsmanship.",
+            "Prehistoric rock paintings in caves depict hunting expeditions and community life."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "soc-term1-ch03",
+      "chapter_number": 3,
+      "title": "History Unit 3: Indus Civilisation",
+      "description": "Harappa and Mohenjo-daro, grid planned towns, Great Bath, granaries, drainage systems, Lothal dockyard.",
+      "textbook_pages": "pp. 147-164",
+      "lesson_id": "social-indus-civilisation",
+      "concepts": [
+        {
+          "id": "soc-ch03-c01",
+          "title": "Indus Valley Civilisation Town Planning",
+          "summary": "Advanced urban civilisation characterized by grid-pattern streets, covered drainage systems, and the Great Bath.",
+          "key_points": [
+            "Harappa was discovered in 1920 in Punjab; Mohenjo-daro in Sindh.",
+            "Streets were laid out on a grid system with right-angle intersections.",
+            "Drains were covered with stone slabs or bricks and connected to street mains.",
+            "Lothal was a prominent port and dockyard city on the Sabarmati river in Gujarat."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "soc-term1-ch04",
+      "chapter_number": 4,
+      "title": "History Unit 4: Ancient Cities of Tamilagam",
+      "description": "Sangam port city of Poompuhar, Pandya trade capital of Madurai (Naalangadi and Allangadi), and temple learning center Kanchi.",
+      "textbook_pages": "pp. 165-178",
+      "lesson_id": null,
+      "concepts": [
+        {
+          "id": "soc-ch04-c01",
+          "title": "Poompuhar, Madurai & Kanchi",
+          "summary": "Flourishing ancient trade, literary hubs, and learning centers in historical Tamil Nadu.",
+          "key_points": [
+            "Poompuhar (Kaveripoompattinam) was a bustling maritime port engaged in overseas trade with Rome and Greece.",
+            "Madurai, the city of Tamil Sangam, had two distinct markets: Naalangadi (day market) and Allangadi (night market).",
+            "Kanchi was a celebrated seat of education and Buddhist learning visited by Chinese traveler Xuanzang."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "soc-term1-ch05",
+      "chapter_number": 5,
+      "title": "Geography Unit 1: The Universe and Solar System",
+      "description": "Big Bang, Milky Way, Sun and eight planets, terrestrial vs gas giants, rotation and revolution, and four spheres of Earth.",
+      "textbook_pages": "pp. 179-198",
+      "lesson_id": "social-universe-solar-system",
+      "concepts": [
+        {
+          "id": "soc-ch05-c01",
+          "title": "The Solar System & Planetary Motions",
+          "summary": "The Sun at the center with eight planets; rotation causes day and night while revolution causes seasons.",
+          "key_points": [
+            "The Solar System formed 4.6 billion years ago and resides in the Milky Way galaxy.",
+            "Inner terrestrial planets: Mercury, Venus, Earth, Mars (rocky surfaces).",
+            "Outer gas giants: Jupiter, Saturn, Uranus, Neptune.",
+            "Earth's rotation on its tilted axis takes 24 hours; revolution around the Sun takes 365.25 days."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "soc-term1-ch06",
+      "chapter_number": 6,
+      "title": "Geography Unit 2: Land and Oceans",
+      "description": "First order landforms (7 continents and 5 oceans), second order landforms (mountains, plateaus, plains), and third order landforms.",
+      "textbook_pages": "pp. 199-216",
+      "lesson_id": null,
+      "concepts": [
+        {
+          "id": "soc-ch06-c01",
+          "title": "Continents, Oceans & Landform Classification",
+          "summary": "Hierarchical orders of physical geographical relief on planet Earth.",
+          "key_points": [
+            "First-order landforms: 7 Continents (Asia, Africa, North America, South America, Antarctica, Europe, Australia) and 5 Oceans.",
+            "Second-order landforms: Mountains, Plateaus (e.g. Tibetan Plateau - Roof of the World), and Plains.",
+            "Third-order landforms: Valleys, gorges, sand dunes, and deltas created by erosion and deposition."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "soc-term1-ch07",
+      "chapter_number": 7,
+      "title": "Civics Unit 1: Understanding Diversity",
+      "description": "Geographical, linguistic, religious, and cultural diversity in India, 8th schedule official languages, and unity in diversity.",
+      "textbook_pages": "pp. 217-226",
+      "lesson_id": null,
+      "concepts": [
+        {
+          "id": "soc-ch07-c01",
+          "title": "Unity in Diversity & Indian Pluralism",
+          "summary": "Celebrating India's rich cultural, linguistic, and geographical tapestry unified as one nation.",
+          "key_points": [
+            "India is recognized for physical diversity across Himalayas, Northern Plains, Peninsular Plateau, and Coastal Ghats.",
+            "The Eighth Schedule of the Indian Constitution recognizes 22 official languages.",
+            "The phrase 'Unity in Diversity' was coined by Pandit Jawaharlal Nehru in The Discovery of India."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "soc-term1-ch08",
+      "chapter_number": 8,
+      "title": "Civics Unit 2: Achieving Equality",
+      "description": "Prejudices, stereotypes, constitutional guarantees (Article 14, Article 17), and contributions of Dr. B.R. Ambedkar.",
+      "textbook_pages": "pp. 227-238",
+      "lesson_id": "social-achieving-equality",
+      "concepts": [
+        {
+          "id": "soc-ch08-c01",
+          "title": "Equality & The Indian Constitution",
+          "summary": "Constitutional provisions guarantee fundamental equality and outlaw discrimination in India.",
+          "key_points": [
+            "Article 14 ensures equality before the law and equal protection of laws.",
+            "Article 17 completely abolishes the practice of untouchability.",
+            "Dr. B.R. Ambedkar chaired the Constitution Drafting Committee and is known as the Father of Indian Constitution."
+          ],
+          "display_order": 1
+        }
+      ]
+    }
+  ]
+}

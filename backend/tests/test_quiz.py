@@ -141,3 +141,68 @@ def test_empty_question_pool_returns_a_graceful_response(client) -> None:
         "question": None,
         "message": "No unanswered questions remain for this subject",
     }
+
+
+def test_quiz_answer_returns_explanation_and_correct_answer(client) -> None:
+    """M05: Quiz answer response includes explanation and correct_answer for pedagogical feedback."""
+    test_client, _ = client
+    learner_id = create_learner(test_client)
+
+    # Submit an incorrect answer
+    resp = answer(test_client, learner_id, "matter-gas-space", "Wrong Choice")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["correct"] is False
+    assert "explanation" in data
+    assert data["explanation"] is not None
+    assert len(data["explanation"]) > 0
+    assert "correct_answer" in data
+    assert data["correct_answer"] is not None
+
+    # Submit a duplicate answer — still returns explanation and correct_answer
+    dup_resp = answer(test_client, learner_id, "matter-gas-space", "Wrong Choice")
+    assert dup_resp.status_code == 200
+    dup_data = dup_resp.json()
+    assert dup_data["duplicate_submission"] is True
+    assert dup_data["explanation"] is not None
+    assert dup_data["correct_answer"] is not None
+
+
+def test_quiz_concept_and_chapter_filter(client) -> None:
+    """M05: get_next_question can filter by concept_id or chapter_id."""
+    test_client, database_path = client
+    learner_id = create_learner(test_client)
+
+    # Insert a question with specific concept_id
+    with Database(database_path).connection() as conn:
+        conn.execute(
+            """
+            INSERT INTO questions (id, lesson_id, subject_id, topic, difficulty, rating, prompt, choices_json, accepted_answers_json, hint, explanation, concept_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "q-custom-concept",
+                "science-matter-basics",
+                "science",
+                "Custom Topic",
+                "medium",
+                1000,
+                "What is a test prompt?",
+                '["Choice A", "Choice B"]',
+                '["Choice A"]',
+                "Think about choice A",
+                "Choice A is correct because...",
+                "sci-ch01-c01",
+            ),
+        )
+
+    # Query with matching concept_id
+    resp = test_client.get(
+        f"/api/quiz/next?learner_id={learner_id}&subject=science&concept_id=sci-ch01-c01"
+    )
+    assert resp.status_code == 200
+    q = resp.json()["question"]
+    assert q is not None
+    assert q["id"] == "q-custom-concept"
+    assert q["hint"] == "Think about choice A"
+

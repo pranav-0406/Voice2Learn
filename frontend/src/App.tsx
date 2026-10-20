@@ -1,111 +1,129 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
-import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
-import { BrowserRouter, NavLink, Navigate, Route, Routes, useNavigate, useParams, useLocation } from 'react-router-dom'
-import { BarChart3, BookOpen, Check, ChevronRight, CircleHelp, Flame, Home, Keyboard, LogOut, Mic, RotateCcw, Sparkles, Star, Target, Volume2, X } from 'lucide-react'
-import { createLearner, getLesson, getNextQuestion, getProgress, getSubjects, interpretVoice, submitAnswer, type Difficulty, type Interpretation, type Learner, type Lesson, type Progress, type Question, type Subject, type VoiceContext } from './api'
-import { useVoice } from './useVoice'
-import { speakText, speechSupported, stopSpeaking } from './speech'
-import { voiceDiagnostic } from './voiceDiagnostics'
+import { useState } from 'react'
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { AnimatePresence, MotionConfig } from 'framer-motion'
 
-const lessonId = 'science-matter-basics'
-const level: Record<Difficulty, string> = { easy: 'Foundation', medium: 'Growing', hard: 'Advanced' }
-const routeItems = [{ to: '/dashboard', label: 'Home', icon: Home }, { to: `/lesson/${lessonId}`, label: 'Lesson', icon: BookOpen }, { to: '/voice', label: 'Voice', icon: Mic }, { to: '/progress', label: 'Progress', icon: BarChart3 }]
-const HELP_GUIDANCE = 'Supported commands: open dashboard, open Science or lesson, open quiz or start quiz, show my progress, go back, read lesson or question, repeat that, select option A, B, C, or D, submit answer, next question, stop speaking, stop listening, cancel, and help. You can also ask a Science question.'
-function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) { return <section className={`card ${className}`}>{children}</section> }
-function Button({ children, className = '', variant = 'primary', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'quiet' }) { return <button className={`button ${variant} ${className}`} {...props}>{children}</button> }
-function Spinner() { return <span className="spinner" aria-label="Loading" /> }
-function Notice({ children, tone = 'error' }: { children: React.ReactNode; tone?: 'error' | 'info' }) { return <p className={`notice ${tone}`} role="alert">{children}</p> }
+import { Navbar, MobileNav } from './components/layout/Navbar'
+import { VoiceStatusBar } from './components/voice/VoiceStatusBar'
+import { Welcome } from './pages/Welcome'
+import { Dashboard } from './pages/Dashboard'
+import { LessonView } from './pages/LessonView'
+import { ConceptViewer } from './pages/ConceptViewer'
+import { VoiceView } from './pages/VoiceView'
+import { QuizView } from './pages/QuizView'
+import { ProgressView } from './pages/ProgressView'
+import { logoutStudent } from './api'
+import type { Learner } from './types'
 
-function App() { return <BrowserRouter><MotionConfig reducedMotion="user"><Shell /></MotionConfig></BrowserRouter> }
+// ─── Storage helpers ─────────────────────────────────────────────────────────
+
+function loadLearner(): Learner | null {
+  try {
+    return JSON.parse(localStorage.getItem('v2l-learner') || 'null')
+  } catch {
+    return null
+  }
+}
+
+function saveLearner(learner: Learner) {
+  localStorage.setItem('v2l-learner', JSON.stringify(learner))
+}
+
+function removeLearner() {
+  localStorage.removeItem('v2l-learner')
+}
+
+// ─── Authenticated shell ──────────────────────────────────────────────────────
+
+function AuthenticatedShell({
+  learner,
+  onLogout,
+  highContrast,
+  onToggleHighContrast,
+}: {
+  learner: Learner
+  onLogout: () => void
+  highContrast: boolean
+  onToggleHighContrast: () => void
+}) {
+  return (
+    <div className={`app-shell ${highContrast ? 'high-contrast' : ''}`}>
+      <Navbar
+        learner={learner}
+        onLogout={onLogout}
+        highContrast={highContrast}
+        onToggleHighContrast={onToggleHighContrast}
+      />
+
+      <main className="main-content" id="main-content" tabIndex={-1}>
+        <AnimatePresence mode="wait">
+          <Routes>
+            <Route path="/dashboard" element={<Dashboard learner={learner} />} />
+            <Route path="/lesson/:id" element={<LessonView />} />
+            <Route path="/concept/:conceptId" element={<ConceptViewer />} />
+            <Route path="/voice" element={<VoiceView />} />
+            <Route path="/quiz" element={<QuizView learner={learner} />} />
+            <Route path="/progress" element={<ProgressView learner={learner} />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </AnimatePresence>
+      </main>
+
+      {/* Persistent voice control bar — always accessible from all screens */}
+      <VoiceStatusBar />
+
+      {/* Mobile bottom nav */}
+      <MobileNav />
+    </div>
+  )
+}
+
+// ─── Root shell ───────────────────────────────────────────────────────────────
+
 function Shell() {
-  const [learner, setLearner] = useState<Learner | null>(() => { try { return JSON.parse(localStorage.getItem('v2l-learner') || 'null') } catch { return null } })
-  const logout = () => { window.dispatchEvent(new Event('voice-stop')); localStorage.removeItem('v2l-learner'); setLearner(null) }
-  if (!learner) return <Welcome onReady={next => { localStorage.setItem('v2l-learner', JSON.stringify(next)); setLearner(next) }} />
-  return <div className="app-shell"><aside className="side-nav"><Brand /><nav aria-label="Main navigation">{routeItems.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}><Icon size={19} />{label}</NavLink>)}</nav><div className="nav-footer"><span className="avatar">{learner.nickname[0]?.toUpperCase()}</span><span><b>{learner.nickname}</b><small>Class {learner.grade_band}</small></span><button aria-label="Sign out" onClick={logout}><LogOut size={18} /></button></div></aside><main className="main-content"><Routes><Route path="/dashboard" element={<Dashboard learner={learner} />} /><Route path="/lesson/:id" element={<LessonPage />} /><Route path="/voice" element={<VoicePage />} /><Route path="/quiz" element={<Quiz learner={learner} />} /><Route path="/progress" element={<ProgressPage learner={learner} />} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes></main><GlobalVoiceControl /><nav className="mobile-nav" aria-label="Main navigation">{routeItems.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} className={({ isActive }) => isActive ? 'active' : ''}><Icon size={20} /><span>{label}</span></NavLink>)}</nav></div>
+  const [learner, setLearner] = useState<Learner | null>(loadLearner)
+  const [highContrast, setHighContrast] = useState(false)
+  const navigate = useNavigate()
+
+  function handleLearnerReady(l: Learner) {
+    saveLearner(l)
+    setLearner(l)
+    navigate('/dashboard', { replace: true })
+  }
+
+  function handleLogout() {
+    window.dispatchEvent(new Event('voice-stop'))
+    logoutStudent()
+    removeLearner()
+    setLearner(null)
+    navigate('/', { replace: true })
+  }
+
+  if (!learner) {
+    return (
+      <Routes>
+        <Route path="*" element={<Welcome onReady={handleLearnerReady} />} />
+      </Routes>
+    )
+  }
+
+  return (
+    <AuthenticatedShell
+      learner={learner}
+      onLogout={handleLogout}
+      highContrast={highContrast}
+      onToggleHighContrast={() => setHighContrast(v => !v)}
+    />
+  )
 }
-function GlobalVoiceControl() {
-  const navigate = useNavigate(); const location = useLocation(); const [contextDetails, setContextDetails] = useState<VoiceContext>({}); const context = useMemo<VoiceContext>(() => ({ ...contextDetails, screen: location.pathname, active_quiz: location.pathname === '/quiz' }), [contextDetails, location.pathname]); const voice = useVoice(context); const [message, setMessage] = useState('Voice control ready.')
-  const { reset: resetVoice, stop: stopVoice } = voice
-  const dispatch = (action: string) => window.dispatchEvent(new CustomEvent('voice-command', { detail: { action } }))
-  const command = voice.result?.interpretation.command
-  const transcript = voice.result?.text
-  const pipelineStartedAt = voice.result?.startedAt
-  const response = voice.result?.interpretation.response
-  const clarification = voice.result?.interpretation.clarification
-  useEffect(() => { voiceDiagnostic('screen-transition'); stopSpeaking(); return () => stopSpeaking() }, [location.pathname])
-  useEffect(() => {
-    const handler = (event: Event) => setContextDetails((event as CustomEvent<VoiceContext>).detail)
-    window.addEventListener('voice-context', handler)
-    return () => window.removeEventListener('voice-context', handler)
-  }, [])
-  useEffect(() => {
-    if (voice.state !== 'done') return
-    if (!command) {
-      if (transcript && voice.state === 'done') {
-        const spokenResponse = response || clarification
-        setMessage(spokenResponse || 'That was not a supported command. Say "help" for guidance, or ask a Science question.')
-        if (spokenResponse) speakText(spokenResponse)
-      }
-      return
-    }
-    const actions: Record<string, () => void> = { OPEN_DASHBOARD: () => navigate('/dashboard'), OPEN_LESSON: () => navigate(`/lesson/${lessonId}`), START_LESSON: () => navigate(`/lesson/${lessonId}`), SELECT_SUBJECT: () => navigate(`/lesson/${lessonId}`), OPEN_QUIZ: () => navigate('/quiz'), SHOW_PROGRESS: () => navigate('/progress'), GO_BACK: () => navigate(-1), STOP_SPEAKING: stopSpeaking, STOP: stopSpeaking, STOP_LISTENING: stopVoice, CANCEL: () => { stopSpeaking(); resetVoice() }, HELP: () => { setMessage(HELP_GUIDANCE); speakText(HELP_GUIDANCE) }, REPEAT: () => dispatch('REPEAT'), READ_LESSON: () => dispatch('READ_LESSON'), NEXT_SECTION: () => dispatch('NEXT_SECTION'), READ_QUESTION: () => dispatch('READ_QUESTION'), SELECT_OPTION_A: () => dispatch('SELECT_OPTION_A'), SELECT_OPTION_B: () => dispatch('SELECT_OPTION_B'), SELECT_OPTION_C: () => dispatch('SELECT_OPTION_C'), SELECT_OPTION_D: () => dispatch('SELECT_OPTION_D'), SUBMIT_ANSWER: () => dispatch('SUBMIT_ANSWER'), NEXT_QUESTION: () => dispatch('NEXT_QUESTION'), CONFIRM: () => dispatch('SUBMIT_ANSWER') }
-    actions[command]?.()
-    voiceDiagnostic(`frontend-dispatch:${command}`, pipelineStartedAt)
-    if (command !== 'HELP') setMessage(`Command completed: ${command.replace(/_/g, ' ').toLowerCase()}.`)
-  }, [clarification, command, navigate, pipelineStartedAt, resetVoice, response, stopVoice, transcript, voice.state])
-  return <div className={`global-voice ${voice.enabled ? 'active' : ''}`}><span className="voice-indicator" aria-hidden="true" /> <span aria-live="polite">{voice.state === 'recording' ? 'Listening…' : voice.state === 'processing' ? 'Processing…' : voice.state === 'error' ? `Retrying: ${voice.error}` : voice.enabled ? 'Voice control active' : message}</span><button aria-label={voice.enabled ? 'Stop voice control' : 'Start voice control'} aria-pressed={voice.enabled} onClick={voice.enabled ? voice.stop : voice.start}><Mic size={18} />{voice.enabled ? 'Stop Voice Control' : 'Start Voice Control'}</button></div>
+
+// ─── App root ─────────────────────────────────────────────────────────────────
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <MotionConfig reducedMotion="user">
+        <Shell />
+      </MotionConfig>
+    </BrowserRouter>
+  )
 }
-/* function LegacyGlobalVoiceControl() {
-  const voice = useVoice(); const navigate = useNavigate(); const location = useLocation(); const [message, setMessage] = useState('Voice control ready.');
-  const dispatch = (action: string) => window.dispatchEvent(new CustomEvent('voice-command', { detail: { action } }))
-  useEffect(() => { stopSpeaking(); return () => stopSpeaking() }, [location.pathname])
-  useEffect(() => { if (!voice.result || voice.state !== 'done') return; const command = voice.result.interpretation.command; if (!command) { setMessage('That was not a supported app command. Say “help” to hear available commands.'); return } const actions: Record<string, () => void> = { OPEN_DASHBOARD: () => navigate('/dashboard'), OPEN_LESSON: () => navigate(`/lesson/${lessonId}`), START_LESSON: () => navigate(`/lesson/${lessonId}`), SELECT_SUBJECT: () => navigate(`/lesson/${lessonId}`), OPEN_QUIZ: () => navigate('/quiz'), SHOW_PROGRESS: () => navigate('/progress'), GO_BACK: () => navigate(-1), STOP_SPEAKING: stopSpeaking, STOP: stopSpeaking, STOP_LISTENING: voice.stop, CANCEL: () => { stopSpeaking(); voice.reset() }, HELP: () => setMessage('Try: open dashboard, open lesson, open quiz, show my progress, read lesson, read question, select option A, submit answer, next question, stop speaking, or go back.'), REPEAT: () => dispatch('REPEAT'), READ_LESSON: () => dispatch('READ_LESSON'), NEXT_SECTION: () => dispatch('NEXT_SECTION'), READ_QUESTION: () => dispatch('READ_QUESTION'), SELECT_OPTION_A: () => dispatch('SELECT_OPTION_A'), SELECT_OPTION_B: () => dispatch('SELECT_OPTION_B'), SELECT_OPTION_C: () => dispatch('SELECT_OPTION_C'), SELECT_OPTION_D: () => dispatch('SELECT_OPTION_D'), SUBMIT_ANSWER: () => dispatch('SUBMIT_ANSWER'), NEXT_QUESTION: () => dispatch('NEXT_QUESTION'), CONFIRM: () => dispatch('SUBMIT_ANSWER') }; actions[command]?.(); if (command !== 'HELP') setMessage(`Command completed: ${command.replace(/_/g, ' ').toLowerCase()}.`) }, [voice.result, voice.state])
-  return <div className="global-voice"><span aria-live="polite">{voice.state === 'recording' ? 'Listening…' : voice.state === 'processing' ? 'Processing…' : message}</span><button aria-label={voice.state === 'recording' ? 'Stop listening' : 'Start voice control'} aria-pressed={voice.state === 'recording'} onClick={voice.state === 'recording' ? voice.stop : voice.start} disabled={voice.state === 'processing'}><Mic size={18} />{voice.state === 'processing' ? 'Working' : voice.state === 'recording' ? 'Stop' : 'Voice control'}</button></div>
-} */
-function Brand() { return <div className="brand"><span className="brand-mark"><Mic size={20} /></span><span>Voice<span>2</span>Learn</span></div> }
-function Welcome({ onReady }: { onReady: (learner: Learner) => void }) {
-  const [name, setName] = useState(''); const [grade, setGrade] = useState<'6-7' | '8-9'>('6-7'); const [pending, setPending] = useState(false); const [error, setError] = useState('')
-  const submit = async (event: FormEvent) => { event.preventDefault(); if (!name.trim()) return setError('Enter your name to continue.'); setPending(true); setError(''); try { onReady(await createLearner(name.trim(), grade)) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to create your learning profile.') } finally { setPending(false) } }
-  return <main className="welcome"><div className="welcome-copy"><Brand /><p className="eyebrow">VOICE-FIRST SCIENCE LEARNING</p><h1>Learning that moves at <em>your</em> pace.</h1><p>Explore science, answer adaptive quizzes, and use your voice whenever it helps.</p><div className="benefits"><span><Check />Built for keyboard and voice</span><span><Check />Progress that adapts to you</span></div></div><motion.section className="onboarding card" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}><p className="eyebrow">GET STARTED</p><h2>Let’s set up your space.</h2><p className="muted">Only your name and class are needed.</p><form onSubmit={submit}><label>Your name<input type="text" value={name} onChange={e => setName(e.target.value)} autoFocus maxLength={40} placeholder="e.g. Asha" /></label><fieldset><legend>Your class</legend><div className="grade-options">{(['6-7', '8-9'] as const).map(value => <label className={grade === value ? 'selected' : ''} key={value}><input type="radio" checked={grade === value} onChange={() => setGrade(value)} />Class {value}</label>)}</div></fieldset>{error && <Notice>{error}</Notice>}<Button type="submit" disabled={pending}>{pending ? <Spinner /> : <>Begin learning <ChevronRight size={18} /></>}</Button></form></motion.section></main>
-}
-function Dashboard({ learner }: { learner: Learner }) {
-  const [data, setData] = useState<{ progress: Progress; subjects: Subject[] } | null>(null); const [error, setError] = useState(''); const navigate = useNavigate()
-  useEffect(() => { let alive = true; Promise.all([getProgress(learner.id), getSubjects()]).then(([progress, subjects]) => alive && setData({ progress, subjects: subjects.subjects })).catch(e => alive && setError(e instanceof Error ? e.message : 'Unable to load your dashboard.')); return () => { alive = false } }, [learner.id])
-  const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'
-  if (error) return <PageError message={error} />
-  return <Page><header className="page-header"><p className="eyebrow">{greeting.toUpperCase()}</p><h1>{learner.nickname}, ready to learn?</h1><p>Small steps make strong progress.</p></header>{!data ? <DashboardSkeleton /> : <><div className="stat-grid"><Stat icon={<Star />} label="Points earned" value={data.progress.points} /><Stat icon={<Flame />} label="Current streak" value={data.progress.correct_streak} /><Stat icon={<Target />} label="Learning level" value={level[data.progress.target_difficulty]} /></div><section className="hero-card"><div><p className="eyebrow">CONTINUE LEARNING</p><h2>States of Matter</h2><p>Discover how solids, liquids, and gases behave.</p><Button onClick={() => navigate(`/lesson/${lessonId}`)}>Continue lesson <ChevronRight size={18} /></Button></div><div className="hero-orb"><Sparkles size={42} /></div></section><div className="content-grid"><Card><div className="section-title"><div><p className="eyebrow">QUICK START</p><h2>Learn your way</h2></div></div><button className="feature-link" onClick={() => navigate('/voice')}><span className="icon-box violet"><Mic /></span><span><b>Ask with voice</b><small>Speak or type a Science question</small></span><ChevronRight /></button><button className="feature-link" onClick={() => navigate('/quiz')}><span className="icon-box mint"><CircleHelp /></span><span><b>Take a quick quiz</b><small>Questions adapt to your progress</small></span><ChevronRight /></button></Card><Card><p className="eyebrow">SUBJECTS</p><h2>Your learning library</h2>{data.subjects.map(subject => <button className="subject-row" key={subject.id} onClick={() => navigate(`/lesson/${lessonId}`)}><BookOpen size={20} /><span><b>{subject.name}</b><small>{subject.language} learning</small></span><ChevronRight size={17} /></button>)}</Card></div></>}</Page>
-}
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) { return <Card className="stat"><span>{icon}</span><small>{label}</small><strong>{value}</strong></Card> }
-function DashboardSkeleton() { return <div className="skeleton-stack"><div className="skeleton stats" /><div className="skeleton hero" /><div className="skeleton block" /></div> }
-function Page({ children }: { children: React.ReactNode }) { return <motion.div className="page" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>{children}</motion.div> }
-function PageError({ message }: { message: string }) { return <Page><Card className="empty"><X size={28} /><h2>We couldn’t load this yet.</h2><p>{message}</p><Button variant="secondary" onClick={() => location.reload()}>Try again</Button></Card></Page> }
-function LessonPage() {
-  const { id = '' } = useParams(); const [lesson, setLesson] = useState<Lesson | null>(null); const [error, setError] = useState(''); const navigate = useNavigate()
-  useEffect(() => { let alive = true; getLesson(id).then(item => alive && setLesson(item)).catch(cause => alive && setError(cause instanceof Error ? cause.message : 'Lesson not found.')); return () => { alive = false } }, [id])
-  useEffect(() => { if (!lesson) return; const narration = [lesson.content.summary, ...(lesson.content.key_points || [])].filter(Boolean).join('. '); window.dispatchEvent(new CustomEvent('voice-context', { detail: { lesson_topic: lesson.topic } })); const handler = (event: Event) => { const action = (event as CustomEvent<{ action: string }>).detail.action; if (action === 'READ_LESSON' || action === 'REPEAT') speakText(narration) }; window.addEventListener('voice-command', handler); return () => window.removeEventListener('voice-command', handler) }, [lesson])
-  if (error) return <PageError message={error} />; if (!lesson) return <Page><div className="skeleton-stack"><div className="skeleton title" /><div className="skeleton block" /><div className="skeleton block" /></div></Page>
-  const content = lesson.content
-  const narration = [content.summary, ...(content.key_points || [])].filter(Boolean).join('. ')
-  return <Page><header className="lesson-header"><p className="eyebrow">{lesson.subject} · {lesson.topic}</p><h1>{lesson.title}</h1><p>Read, listen, and try each idea at your own pace.</p><div className="action-row"><Button onClick={() => speakText(narration)} disabled={!speechSupported()}><Volume2 size={18} />Listen to lesson</Button><Button variant="secondary" onClick={() => navigate('/quiz')}>Try the quiz <ChevronRight size={18} /></Button></div></header>{content.summary && <Card className="lesson-summary"><Sparkles size={22} /><p>{content.summary}</p></Card>}<div className="lesson-grid"><article>{content.key_points?.length ? <section className="learning-section"><p className="eyebrow">KEY IDEAS</p><h2>Understand the basics</h2>{content.key_points.map((point, index) => <div className="key-point" key={point}><span>{index + 1}</span><p>{point}</p></div>)}</section> : null}{content.try_it && <Card className="try-it"><p className="eyebrow">TRY IT</p><h2>Explore it yourself</h2><p>{content.try_it}</p></Card>}</article><aside>{content.vocabulary && <Card><p className="eyebrow">VOCABULARY</p>{Object.entries(content.vocabulary).map(([term, definition]) => <dl className="vocab" key={term}><dt>{term}</dt><dd>{definition}</dd></dl>)}</Card>}{content.quiz_ready_facts?.length ? <Card className="remember"><p className="eyebrow">REMEMBER THIS</p>{content.quiz_ready_facts.map(fact => <p key={fact}><Star size={15} />{fact}</p>)}</Card> : null}</aside></div><Card className="voice-cta"><div><Mic /><div><b>Want to ask about this?</b><p>Use your voice or type your question at any time.</p></div></div><Button variant="secondary" onClick={() => navigate('/voice')}>Ask with voice</Button></Card></Page>
-}
-function VoicePage() {
-  const [typed, setTyped] = useState(''); const [typedResult, setTypedResult] = useState<{ text: string; interpretation: Interpretation } | null>(null); const [pending, setPending] = useState(false); const [typedError, setTypedError] = useState(''); const [speaking, setSpeaking] = useState(false)
-  const result = typedResult
-  const submitText = async (event: FormEvent) => { event.preventDefault(); if (!typed.trim()) return; setPending(true); setTypedError(''); try { setTypedResult({ text: typed.trim(), interpretation: await interpretVoice(typed.trim()) }) } catch (cause) { setTypedError(cause instanceof Error ? cause.message : 'Could not process that text.') } finally { setPending(false) } }
-  const readTranscript = () => { if (!result) return; setSpeaking(speakText(result.text, () => setSpeaking(false))) }
-  return <Page><header className="voice-header"><p className="eyebrow">VOICE ASSISTANT</p><h1>Ask in the way that works for you.</h1><p>Use the persistent voice-control toggle below, or type a request instead.</p></header><div className="voice-layout"><Card className="voice-stage"><div className="mic-halo"><Mic size={48} /></div><p className="voice-status" aria-live="polite">Use Start Voice Control to listen continuously from any screen.</p></Card><Card className="voice-help"><p className="eyebrow">HOW IT WORKS</p><h2>A calmer way to participate</h2><ol><li><span>1</span>Enable the persistent voice-control toggle.</li><li><span>2</span>Speak short requests as you learn.</li><li><span>3</span>Stop voice control whenever you want.</li></ol><p className="muted">Voice recognition requires microphone permission and a supported browser.</p></Card></div><Card className="text-alternative"><div><Keyboard /><div><p className="eyebrow">TEXT ALTERNATIVE</p><h2>Prefer to type?</h2></div></div><form onSubmit={submitText}><label className="sr-only" htmlFor="question">Your science question</label><input id="question" value={typed} onChange={event => setTyped(event.target.value)} placeholder="Type a Science question or command" /><Button type="submit" disabled={pending}>{pending ? <Spinner /> : 'Send'}</Button></form>{typedError && <Notice>{typedError}</Notice>}</Card><AnimatePresence>{result && <motion.section className="voice-result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}><Card><p className="eyebrow">YOU SAID</p><blockquote>“{result.text}”</blockquote><div className="action-row"><Button variant="secondary" onClick={readTranscript}><Volume2 size={17} />Repeat</Button>{speaking && <Button variant="quiet" onClick={() => { stopSpeaking(); setSpeaking(false) }}>Stop speaking</Button>}<Button variant="quiet" onClick={() => { setTypedResult(null); setTyped('') }}><RotateCcw size={17} />Start again</Button></div></Card><Card className="interpretation"><p className="eyebrow">VOICE RESULT</p><span className="status-pill">{result.interpretation.intent.replace('_', ' ')}</span>{result.interpretation.answer ? <p>{result.interpretation.answer}</p> : result.interpretation.response ? <p>{result.interpretation.response}</p> : <p>{result.interpretation.intent === 'question' ? 'Your question was transcribed successfully.' : 'Your request was recognised.'}</p>}</Card></motion.section>}</AnimatePresence></Page>
-}
-function Quiz({ learner }: { learner: Learner }) {
-  const [question, setQuestion] = useState<Question | null>(null); const [phase, setPhase] = useState<'loading' | 'question' | 'feedback' | 'finished' | 'error'>('loading'); const [selected, setSelected] = useState<string | null>(null); const [draft, setDraft] = useState<string | null>(null); const [feedback, setFeedback] = useState<{ correct: boolean; message: string; points_awarded: number } | null>(null); const [error, setError] = useState(''); const [answered, setAnswered] = useState(0); const [points, setPoints] = useState(0)
-  const next = useCallback(async () => { setPhase('loading'); setSelected(null); setDraft(null); setFeedback(null); try { const response = await getNextQuestion(learner.id); setQuestion(response.question); setPhase(response.question ? 'question' : 'finished') } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not load a question.'); setPhase('error') } }, [learner.id])
-  useEffect(() => { void next() }, [next])
-  const answer = useCallback(async (choice: string) => { if (!question || selected) return; setSelected(choice); try { const response = await submitAnswer(learner.id, question.id, choice); setFeedback(response); setAnswered(value => value + 1); setPoints(value => value + response.points_awarded); setPhase('feedback'); speakText(response.correct ? 'Correct. Well done.' : response.message) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not record this answer.'); setSelected(null); setPhase('error') } }, [learner.id, question, selected])
-  useEffect(() => { if (question) window.dispatchEvent(new CustomEvent('voice-context', { detail: { active_quiz: true, question: question.prompt } })); const handler = (event: Event) => { const action = (event as CustomEvent<{ action: string }>).detail.action; if (action === 'READ_QUESTION' || action === 'REPEAT') { if (question) speakText(question.prompt) } if (action === 'NEXT_QUESTION' && phase === 'feedback') void next(); if (action === 'SUBMIT_ANSWER' && draft) void answer(draft); const match = action.match(/^SELECT_OPTION_([A-D])$/); if (match && question && phase === 'question') { const choice = question.choices[match[1].charCodeAt(0) - 65]; if (choice) setDraft(choice) } }; window.addEventListener('voice-command', handler); return () => window.removeEventListener('voice-command', handler) }, [answer, draft, next, phase, question])
-  if (phase === 'loading') return <Page><div className="skeleton-stack"><div className="skeleton title" /><div className="skeleton block" /><div className="skeleton block" /></div></Page>
-  if (phase === 'error') return <PageError message={error} />
-  if (phase === 'finished') return <Page><Card className="results"><span className="results-icon"><Check /></span><p className="eyebrow">QUIZ COMPLETE</p><h1>That’s a great session.</h1><p>You answered {answered} question{answered === 1 ? '' : 's'} and earned {points} points this time.</p><Button onClick={next}><RotateCcw size={17} />Check for new questions</Button></Card></Page>
-  if (!question) return null
-  return <Page><header className="quiz-header"><div><p className="eyebrow">ADAPTIVE QUIZ</p><h1>Stay curious.</h1></div><span className="difficulty">{level[question.difficulty]}</span></header><div className="quiz-progress"><span>Session: {answered} answered · {points} points</span><div><i style={{ width: `${Math.min(100, answered * 20)}%` }} /></div></div><Card className="question-card"><div className="question-top"><span>{question.topic}</span><button onClick={() => speakText(question.prompt)} aria-label="Read question aloud" disabled={!speechSupported()}><Volume2 size={19} /></button></div><h2>{question.prompt}</h2></Card><div className="answer-list" role="group" aria-label="Answer choices">{question.choices.map((choice, index) => { const chosen = draft === choice || selected === choice; const correct = selected === choice && feedback?.correct; const wrong = selected === choice && feedback && !feedback.correct; return <motion.button key={choice} className={`answer ${chosen ? 'selected' : ''} ${correct ? 'correct' : ''} ${wrong ? 'wrong' : ''}`} disabled={!!selected} onClick={() => setDraft(choice)} whileTap={{ scale: 0.99 }}><span>{String.fromCharCode(65 + index)}</span>{choice}{correct && <Check size={19} />}{wrong && <X size={19} />}</motion.button> })}</div>{phase === 'question' && <Button className="submit-answer" disabled={!draft} onClick={() => draft && answer(draft)}>Submit answer</Button>}<AnimatePresence>{phase === 'feedback' && feedback && <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`feedback ${feedback.correct ? 'success' : 'mistake'}`} role="status"><b>{feedback.correct ? 'Nice work!' : 'Keep going.'}</b><p>{feedback.message}</p>{feedback.points_awarded > 0 && <small>+{feedback.points_awarded} points</small>}<Button onClick={next}>Next question <ChevronRight size={18} /></Button></motion.div>}</AnimatePresence></Page>
-}
-function ProgressPage({ learner }: { learner: Learner }) { const [progress, setProgress] = useState<Progress | null>(null); const [error, setError] = useState(''); useEffect(() => { let alive = true; getProgress(learner.id).then(value => alive && setProgress(value)).catch(cause => alive && setError(cause instanceof Error ? cause.message : 'Unable to load progress.')); return () => { alive = false } }, [learner.id]); if (error) return <PageError message={error} />; if (!progress) return <Page><DashboardSkeleton /></Page>; return <Page><header className="page-header"><p className="eyebrow">LEARNING PROGRESS</p><h1>See your growth, {learner.nickname}.</h1><p>Every answer helps your learning path adapt.</p></header><div className="stat-grid"><Stat icon={<Star />} label="Total points" value={progress.points} /><Stat icon={<Flame />} label="Correct streak" value={progress.correct_streak} /><Stat icon={<Target />} label="Current level" value={level[progress.target_difficulty]} /></div><Card className="mastery"><p className="eyebrow">TOPIC MASTERY</p><h2>Your Science progress</h2>{progress.topics.length ? progress.topics.map(topic => <div className="mastery-row" key={topic.topic}><div><b>{topic.topic}</b><small>{topic.correct_answers} of {topic.attempts} correct</small></div><strong>{topic.mastery_percent}%</strong><div className="progress-track" role="progressbar" aria-label={`${topic.topic} mastery`} aria-valuenow={topic.mastery_percent} aria-valuemin={0} aria-valuemax={100}><motion.i initial={{ width: 0 }} animate={{ width: `${Math.min(100, topic.mastery_percent)}%` }} /></div></div>) : <div className="empty compact"><Target size={25} /><h2>Your first quiz starts here.</h2><p>Complete a quiz to see real progress in this space.</p></div>}</Card>{progress.lessons.length > 0 && <Card className="lesson-progress"><p className="eyebrow">BY LESSON</p>{progress.lessons.map(item => <div key={item.lesson_id}><span>{item.lesson_id.replace(/-/g, ' ')}</span><b>{item.mastery_percent}%</b></div>)}</Card>}</Page> }
-export default App

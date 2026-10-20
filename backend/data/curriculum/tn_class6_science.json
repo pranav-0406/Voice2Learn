@@ -1,0 +1,163 @@
+{
+  "subject": {
+    "id": "science",
+    "name": "Science",
+    "code": "SCI",
+    "icon": "Atom",
+    "accent_color": "#8B5CF6",
+    "display_order": 3
+  },
+  "term": 1,
+  "chapters": [
+    {
+      "id": "sci-term1-ch01",
+      "chapter_number": 1,
+      "title": "Unit 1: Measurements",
+      "description": "Physical quantities, SI base units, prefixes and submultiples, parallax error prevention, and laboratory measurement tools.",
+      "textbook_pages": "pp. 1-16",
+      "lesson_id": "science-measurements",
+      "concepts": [
+        {
+          "id": "sci-ch01-c01",
+          "title": "SI Units & Physical Measurements",
+          "summary": "Standard international units for length (metre), mass (kilogram), time (second), and volume (litre).",
+          "key_points": [
+            "Length is measured in metres (m); 1 km = 1000 m, 1 m = 100 cm, 1 cm = 10 mm.",
+            "Mass is measured in kilograms (kg); beam and electronic balances measure mass accurately.",
+            "Parallax error is avoided by looking vertically above the scale reading line."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "sci-term1-ch02",
+      "chapter_number": 2,
+      "title": "Unit 2: Force and Motion",
+      "description": "Contact vs non-contact forces, types of motion (linear, circular, rotatory, oscillatory), and speed calculation.",
+      "textbook_pages": "pp. 17-34",
+      "lesson_id": null,
+      "concepts": [
+        {
+          "id": "sci-ch02-c01",
+          "title": "Forces & Types of Motion",
+          "summary": "Forces can push or pull, alter speed or direction; motion can be linear, circular, oscillatory, or periodic.",
+          "key_points": [
+            "Contact forces require physical touch (muscular, frictional).",
+            "Non-contact forces act at a distance (gravitational, magnetic, electrostatic).",
+            "Speed = Distance / Time; measured in metres per second (m/s) or km/h."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "sci-term1-ch03",
+      "chapter_number": 3,
+      "title": "Unit 3: Matter Around Us",
+      "description": "Solids, liquids, gases, particle arrangement, diffusion, and separation methods for mixtures.",
+      "textbook_pages": "pp. 35-54",
+      "lesson_id": "science-matter-basics",
+      "concepts": [
+        {
+          "id": "sci-ch03-c01",
+          "title": "Three States of Matter & Separation of Mixtures",
+          "summary": "Solids, liquids, and gases differ in particle spacing and motion; mixtures can be separated by filtration, sedimentation, and evaporation.",
+          "key_points": [
+            "Solids have fixed shape and volume; particles are tightly packed.",
+            "Liquids take the shape of their container; particles slide over each other.",
+            "Gases fill all available space; particles are very far apart and move rapidly.",
+            "Insoluble solids can be separated from liquids by sedimentation, decantation, and filtration."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "sci-term1-ch04",
+      "chapter_number": 4,
+      "title": "Unit 4: The World of Plants",
+      "description": "Plant morphology, root systems, shoot systems, leaf anatomy, photosynthesis, transpiration, and adaptations.",
+      "textbook_pages": "pp. 55-74",
+      "lesson_id": "science-plant-world",
+      "concepts": [
+        {
+          "id": "sci-ch04-c01",
+          "title": "Plant Structure & Functions",
+          "summary": "Root systems absorb water and nutrients; shoot systems carry out photosynthesis, respiration, and transpiration.",
+          "key_points": [
+            "Tap root system has one main thick root with lateral branches (mustard, bean).",
+            "Fibrous root system consists of a cluster of thin roots originating from stem base (grass, paddy).",
+            "Leaves produce food via photosynthesis using sunlight, chlorophyll, CO2, and water.",
+            "Transpiration releases excess water vapor through microscopic stomata."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "sci-term1-ch05",
+      "chapter_number": 5,
+      "title": "Unit 5: The World of Animals",
+      "description": "Unicellular vs multicellular organisms, Amoeba, Paramecium, Euglena, and animal adaptations in fish, frogs, birds, and camels.",
+      "textbook_pages": "pp. 75-92",
+      "lesson_id": null,
+      "concepts": [
+        {
+          "id": "sci-ch05-c01",
+          "title": "Animal Diversity & Adaptations",
+          "summary": "Special physical and behavioral traits enabling organisms to survive in terrestrial, aquatic, or desert environments.",
+          "key_points": [
+            "Amoeba moves using pseudopodia; Paramecium moves using cilia.",
+            "Fish have streamlined bodies, fins, and gills to breathe dissolved oxygen.",
+            "Birds have pneumatic hollow bones, strong flight muscles, and streamlined feathers.",
+            "Camels store fat in their humps and have broad padded feet for desert sand."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "sci-term1-ch06",
+      "chapter_number": 6,
+      "title": "Unit 6: Health and Hygiene",
+      "description": "Nutrients (carbs, fats, proteins, vitamins, minerals), deficiency diseases, balanced diet, and communicable infections.",
+      "textbook_pages": "pp. 93-110",
+      "lesson_id": null,
+      "concepts": [
+        {
+          "id": "sci-ch06-c01",
+          "title": "Nutrients and Deficiency Diseases",
+          "summary": "Essential food components necessary for energy, body growth, and immunity against communicable pathogens.",
+          "key_points": [
+            "Carbohydrates and fats are primary energy providers; proteins build body tissue.",
+            "Vitamin deficiencies: Night blindness (Vitamin A), Scurvy (Vitamin C), Rickets (Vitamin D).",
+            "Mineral deficiencies: Goitre caused by iodine deficiency; Anaemia caused by iron deficiency."
+          ],
+          "display_order": 1
+        }
+      ]
+    },
+    {
+      "id": "sci-term1-ch07",
+      "chapter_number": 7,
+      "title": "Unit 7: Computer — An Introduction",
+      "description": "History of computers, pioneer Charles Babbage, five generations of hardware, CPU components, and input/output devices.",
+      "textbook_pages": "pp. 111-124",
+      "lesson_id": null,
+      "concepts": [
+        {
+          "id": "sci-ch07-c01",
+          "title": "Computer Pioneers & Generations",
+          "summary": "Development of electronic computation from vacuum tubes to microprocessors and modern AI systems.",
+          "key_points": [
+            "Charles Babbage is known as the Father of Computing; Lady Ada Lovelace was the first computer programmer.",
+            "Hardware generations: 1st (Vacuum Tubes), 2nd (Transistors), 3rd (Integrated Circuits), 4th (Microprocessors), 5th (AI).",
+            "Central Processing Unit (CPU) contains Arithmetic Logic Unit (ALU), Control Unit (CU), and Memory Unit (MU)."
+          ],
+          "display_order": 1
+        }
+      ]
+    }
+  ]
+}

@@ -42,14 +42,19 @@ def test_create_learner_rejects_invalid_nicknames(client, nickname: str) -> None
     assert response.status_code == 422
 
 
-def test_subject_listing_returns_seeded_science(client) -> None:
+def test_subject_listing_returns_seeded_subjects(client) -> None:
     test_client, _ = client
 
     response = test_client.get("/api/subjects")
 
     assert response.status_code == 200
     assert response.json() == {
-        "subjects": [{"id": "science", "name": "Science", "language": "English"}]
+        "subjects": [
+            {"id": "english", "name": "English", "language": "English"},
+            {"id": "mathematics", "name": "Mathematics", "language": "English"},
+            {"id": "science", "name": "Science", "language": "English"},
+            {"id": "social_science", "name": "Social Science", "language": "English"},
+        ]
     }
 
 

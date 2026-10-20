@@ -1,0 +1,1 @@
+"""Curriculum resolution package."""

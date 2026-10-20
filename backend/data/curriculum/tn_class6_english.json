@@ -1,0 +1,110 @@
+{
+  "subject": {
+    "id": "english",
+    "name": "English",
+    "code": "ENG",
+    "icon": "BookOpen",
+    "accent_color": "#3B82F6",
+    "display_order": 1
+  },
+  "term": 1,
+  "chapters": [
+    {
+      "id": "eng-term1-ch01",
+      "chapter_number": 1,
+      "title": "Unit 1: Marine Life & Sea Turtles",
+      "description": "Prose: Sea Turtles, Poem: The Crocodile by Lewis Carroll, Supplementary: Owlie by Vijaya Ghose, Grammar: Nouns, Subject & Predicate, Prefixes.",
+      "textbook_pages": "pp. 85-112",
+      "lesson_id": "english-sea-turtles",
+      "concepts": [
+        {
+          "id": "eng-ch01-c01",
+          "title": "Sea Turtles & Marine Life",
+          "summary": "Seven species of sea turtles exist globally; five visit Indian waters. They return to nesting beaches through mass arribada.",
+          "key_points": [
+            "Seven species worldwide; five in Indian waters (Olive Ridley, Hawksbill, Green Sea Turtle, Loggerhead, Leatherback).",
+            "Leatherback is the largest sea turtle, growing up to 2.2 meters and 700 kg.",
+            "Females come ashore only at night to lay eggs in deep sand pits.",
+            "Odisha coast is world-famous for mass nesting arribada."
+          ],
+          "display_order": 1
+        },
+        {
+          "id": "eng-ch01-c02",
+          "title": "Poetry: The Crocodile & Vocabulary",
+          "summary": "Lewis Carroll's humorous poem depicting a crocodile on the Nile welcoming little fishes in with gently smiling jaws.",
+          "key_points": [
+            "Poet: Lewis Carroll, renowned author of Alice in Wonderland.",
+            "Themes: Deception, predator instincts portrayed with playful rhyme.",
+            "Vocabulary: Doth (does), grin, scales, claws, smiling jaws."
+          ],
+          "display_order": 2
+        }
+      ]
+    },
+    {
+      "id": "eng-term1-ch02",
+      "chapter_number": 2,
+      "title": "Unit 2: Nature & When the Trees Walked",
+      "description": "Prose: When the Trees Walked by Ruskin Bond, Poem: Trees by Joyce Kilmer, Supplementary: The Apple Tree and the Farmer, Grammar: Adjectives & Degrees of Comparison.",
+      "textbook_pages": "pp. 113-138",
+      "lesson_id": "english-trees-walked",
+      "concepts": [
+        {
+          "id": "eng-ch02-c01",
+          "title": "When the Trees Walked & Forest Conservation",
+          "summary": "Grandfather's passion for planting saplings transforms a rocky riverbed into a vibrant green oasis for birds and animals.",
+          "key_points": [
+            "Plants seek light and water, stretching their roots toward nutrients.",
+            "Planting trees prevents soil erosion and creates habitats for wildlife.",
+            "Ruskin Bond reflects on returning to find grandfather's saplings grown into a forest."
+          ],
+          "display_order": 1
+        },
+        {
+          "id": "eng-ch02-c02",
+          "title": "Grammar: Degrees of Comparison",
+          "summary": "Using positive, comparative, and superlative degrees of adjectives to compare people, places, and things.",
+          "key_points": [
+            "Positive degree: describes one noun without comparison (tall).",
+            "Comparative degree: compares two nouns, usually ending in -er or with 'more' (taller).",
+            "Superlative degree: compares three or more nouns, usually ending in -est or with 'most' (tallest)."
+          ],
+          "display_order": 2
+        }
+      ]
+    },
+    {
+      "id": "eng-term1-ch03",
+      "chapter_number": 3,
+      "title": "Unit 3: World Cultures & Spices",
+      "description": "Prose: A Visitor from Distant Lands, Poem: I Dream of Spices by Raj Arumugam, Supplementary: Stone Soup, Grammar: Prepositions & Sentence Types.",
+      "textbook_pages": "pp. 139-166",
+      "lesson_id": "english-spices-lands",
+      "concepts": [
+        {
+          "id": "eng-ch03-c01",
+          "title": "Global Spice Trade & History",
+          "summary": "How ancient explorers sailed across oceans in search of Indian black pepper, cloves, and cardamom.",
+          "key_points": [
+            "Black pepper was valued like black gold in ancient Rome and Greece.",
+            "Vasco da Gama reached Calicut (Kozhikode) in Kerala in 1498 seeking spices.",
+            "Chilies, potatoes, and tomatoes were introduced to India from South America via Portuguese traders."
+          ],
+          "display_order": 1
+        },
+        {
+          "id": "eng-ch03-c02",
+          "title": "Grammar: Prepositions and Sentence Structure",
+          "summary": "Prepositions denote relationships of time, place, and direction between nouns and other words in a sentence.",
+          "key_points": [
+            "Prepositions of place: on, under, between, behind.",
+            "Prepositions of time: in the morning, at 5 o'clock, on Monday.",
+            "Four sentence types: Declarative, Interrogative, Imperative, and Exclamatory."
+          ],
+          "display_order": 2
+        }
+      ]
+    }
+  ]
+}
