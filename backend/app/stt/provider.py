@@ -167,6 +167,15 @@ class GroqWhisperProvider:
                 "Groq speech-to-text is selected but GROQ_API_KEY is not configured."
             )
 
+        if not audio_path.exists() or audio_path.stat().st_size == 0:
+            return TranscriptionResult(
+                text="",
+                language="en",
+                duration_seconds=0.0,
+                model=self._model,
+                device="cloud",
+            )
+
         client = self._get_client()
 
         try:
@@ -216,13 +225,14 @@ class GroqWhisperProvider:
             ) from error
         except APIStatusError as error:
             status_code = getattr(error, "status_code", 500)
-            logger.warning("groq_stt_status_error status_code=%s model=%s", status_code, self._model)
+            err_msg = getattr(error, "message", str(error))
+            logger.warning("groq_stt_status_error status_code=%s model=%s: %s", status_code, self._model, err_msg)
             if status_code >= 500:
                 raise STTProviderError(
                     "Groq speech-to-text service is temporarily unavailable."
                 ) from error
             raise STTTranscriptionError(
-                f"Audio could not be transcribed by Groq speech-to-text (status {status_code})."
+                f"Audio could not be transcribed by Groq speech-to-text (status {status_code}): {err_msg}"
             ) from error
         except (
             STTUnavailableError,

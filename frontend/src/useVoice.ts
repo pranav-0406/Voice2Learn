@@ -175,6 +175,9 @@ export function useVoice(context: VoiceContext = {}) {
             return
           }
 
+          processing.current = true
+          setState('processing')
+
           void transcribeAudio(audio)
             .then(async (transcription) => ({
               text: transcription.text,
