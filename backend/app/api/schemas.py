@@ -127,11 +127,11 @@ class CurriculumSourceMetadata(BaseModel):
 
 
 class VoiceInterpretResponse(BaseModel):
-    intent: Literal["command", "quiz_answer", "question", "unknown"]
+    intent: Literal["command", "quiz_answer", "question", "unknown", "noise"]
     confidence: float
     command: str | None = None
     answer: str | None = None
-    category: Literal["application", "learning", "follow_up", "clarification", "unsupported"] | None = None
+    category: Literal["application", "learning", "follow_up", "clarification", "unsupported", "noise"] | None = None
     response: str | None = None
     clarification: str | None = None
     source: CurriculumSourceMetadata | None = None
@@ -323,5 +323,4 @@ class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     student: StudentProfile
-
 

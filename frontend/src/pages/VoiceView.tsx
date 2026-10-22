@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Keyboard, Mic, RotateCcw, Volume2 } from 'lucide-react'
+import { Keyboard, Mic, Pause, Play, RotateCcw, Volume2 } from 'lucide-react'
 import {
   Button,
   Card,
@@ -9,7 +9,13 @@ import {
   Spinner,
 } from '../components/ui'
 import { interpretVoice } from '../api'
-import { speakText, stopSpeaking } from '../speech'
+import {
+  pauseSpeaking,
+  resumeSpeaking,
+  speakText,
+  stopSpeaking,
+  type SpeechPlaybackState,
+} from '../speech'
 import type { Interpretation } from '../types'
 
 export function VoiceView() {
@@ -20,9 +26,20 @@ export function VoiceView() {
   } | null>(null)
   const [pending, setPending] = useState(false)
   const [typedError, setTypedError] = useState('')
-  const [speaking, setSpeaking] = useState(false)
+  const [speechState, setSpeechState] = useState<SpeechPlaybackState>('idle')
 
   const result = typedResult
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const nextState = (event as CustomEvent<{ state: SpeechPlaybackState }>).detail?.state
+      if (nextState) setSpeechState(nextState)
+    }
+    window.addEventListener('tts-speaking-change', handler)
+    return () => window.removeEventListener('tts-speaking-change', handler)
+  }, [])
+
+  useEffect(() => () => stopSpeaking(), [])
 
   const submitText = async (event: FormEvent) => {
     event.preventDefault()
@@ -31,6 +48,7 @@ export function VoiceView() {
     setTypedError('')
     try {
       const interpretation = await interpretVoice(typed.trim())
+      stopSpeaking()
       setTypedResult({ text: typed.trim(), interpretation })
     } catch (cause) {
       setTypedError(
@@ -47,7 +65,7 @@ export function VoiceView() {
       result.interpretation.answer ||
       result.interpretation.response ||
       result.text
-    setSpeaking(speakText(textToRead, () => setSpeaking(false)))
+    speakText(textToRead)
   }
 
   return (
@@ -137,20 +155,20 @@ export function VoiceView() {
                   <Volume2 size={17} aria-hidden="true" />
                   Read aloud
                 </Button>
-                {speaking && (
+                {speechState !== 'idle' && (
                   <Button
                     variant="quiet"
-                    onClick={() => {
-                      stopSpeaking()
-                      setSpeaking(false)
-                    }}
+                    onClick={speechState === 'paused' ? resumeSpeaking : pauseSpeaking}
+                    aria-label={speechState === 'paused' ? 'Resume speaking' : 'Stop speaking'}
                   >
-                    Stop speaking
+                    {speechState === 'paused' ? <Play size={17} aria-hidden="true" /> : <Pause size={17} aria-hidden="true" />}
+                    {speechState === 'paused' ? 'Resume speaking' : 'Stop speaking'}
                   </Button>
                 )}
                 <Button
                   variant="quiet"
                   onClick={() => {
+                    stopSpeaking()
                     setTypedResult(null)
                     setTyped('')
                   }}

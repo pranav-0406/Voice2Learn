@@ -46,6 +46,8 @@ class Settings:
     groq_llm_model: str = "openai/gpt-oss-20b"
     groq_agent_model: str = "openai/gpt-oss-120b"
     groq_timeout_seconds: int = 30
+    ai_classifier_enabled: bool = False
+    ai_classifier_timeout_seconds: int = 5
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_model: str | None = None
     ollama_timeout_seconds: int = 30
@@ -141,6 +143,10 @@ def get_settings() -> Settings:
             "GROQ_TIMEOUT_SECONDS",
             _positive_integer_from_environment("VOICE2LEARN_GROQ_TIMEOUT_SECONDS", 30),
         ),
+        ai_classifier_enabled=_boolean_from_environment("VOICE2LEARN_AI_CLASSIFIER", False),
+        ai_classifier_timeout_seconds=_positive_integer_from_environment(
+            "VOICE2LEARN_AI_CLASSIFIER_TIMEOUT_SECONDS", 5
+        ),
         ollama_base_url=os.getenv("VOICE2LEARN_OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/"),
         ollama_model=os.getenv("VOICE2LEARN_OLLAMA_MODEL") or None,
         ollama_timeout_seconds=_positive_integer_from_environment(
@@ -148,5 +154,4 @@ def get_settings() -> Settings:
         ),
         secret_key=os.getenv("VOICE2LEARN_SECRET_KEY", "voice2learn-development-secret-key-class6"),
     )
-
 

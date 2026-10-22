@@ -9,8 +9,15 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Mic, Play, Square, Volume2 } from 'lucide-react'
-import { speakText, speechSupported, stopSpeaking } from '../../speech'
+import { Mic, Pause, Play, Volume2 } from 'lucide-react'
+import {
+  pauseSpeaking,
+  resumeSpeaking,
+  speakText,
+  speechSupported,
+  stopSpeaking,
+  type SpeechPlaybackState,
+} from '../../speech'
 import type { NarrationState } from '../../types'
 
 interface AudioNarrationBarProps {
@@ -27,6 +34,7 @@ export function AudioNarrationBar({
   accentColor = '#8B5CF6',
 }: AudioNarrationBarProps) {
   const [state, setState] = useState<NarrationState>('idle')
+  const [playbackState, setPlaybackState] = useState<SpeechPlaybackState>('idle')
   const [pointIndex, setPointIndex] = useState<number>(-1)
   const cancelRef = useRef(false)
   const supported = speechSupported()
@@ -58,11 +66,6 @@ export function AudioNarrationBar({
     [summary, keyPoints, supported]
   )
 
-  function handlePlay() {
-    if (state === 'speaking') return
-    narrate()
-  }
-
   function handleStop() {
     cancelRef.current = true
     stopSpeaking()
@@ -70,8 +73,19 @@ export function AudioNarrationBar({
     setPointIndex(-1)
   }
 
+  function handlePlaybackToggle() {
+    if (playbackState === 'speaking') pauseSpeaking()
+    else if (playbackState === 'paused') resumeSpeaking()
+    else narrate()
+  }
+
   // Voice command listeners
   useEffect(() => {
+    const playbackHandler = (event: Event) => {
+      const nextState = (event as CustomEvent<{ state: SpeechPlaybackState }>).detail?.state
+      if (nextState) setPlaybackState(nextState)
+    }
+    window.addEventListener('tts-speaking-change', playbackHandler)
     const handler = (e: Event) => {
       const action = (e as CustomEvent<{ action: string }>).detail.action
       if (action === 'READ_LESSON' || action === 'REPEAT') {
@@ -82,7 +96,10 @@ export function AudioNarrationBar({
       }
     }
     window.addEventListener('voice-command', handler)
-    return () => window.removeEventListener('voice-command', handler)
+    return () => {
+      window.removeEventListener('tts-speaking-change', playbackHandler)
+      window.removeEventListener('voice-command', handler)
+    }
   }, [narrate])
 
   // Stop on unmount
@@ -90,7 +107,7 @@ export function AudioNarrationBar({
 
   if (!supported) return null
 
-  const isActive = state === 'speaking'
+  const isActive = state === 'speaking' || playbackState === 'paused'
   const totalSegments = 1 + keyPoints.length // summary + key points
   const currentSegment = pointIndex + 1 // 0 = summary, 1+ = key point n
 
@@ -132,17 +149,18 @@ export function AudioNarrationBar({
           <button
             type="button"
             className="narration-btn narration-btn--stop"
-            onClick={handleStop}
-            aria-label="Stop narration"
-            id="btn-narration-stop"
+            onClick={handlePlaybackToggle}
+            aria-label={playbackState === 'paused' ? 'Resume speaking' : 'Stop speaking'}
+            id="btn-narration-playback"
           >
-            <Square size={16} aria-hidden="true" />
+            {playbackState === 'paused' ? <Play size={16} aria-hidden="true" /> : <Pause size={16} aria-hidden="true" />}
+            <span>{playbackState === 'paused' ? 'Resume speaking' : 'Stop speaking'}</span>
           </button>
         ) : (
           <button
             type="button"
             className="narration-btn narration-btn--play"
-            onClick={handlePlay}
+            onClick={handlePlaybackToggle}
             aria-label="Play narration"
             id="btn-narration-play"
           >

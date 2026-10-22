@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -32,6 +33,37 @@ QUIZ_ONLY_COMMANDS = {
 LESSON_ONLY_COMMANDS = {
     "NEXT_CONCEPT", "PREV_CONCEPT", "READ_LESSON",
 }
+
+NOISE_PHRASES = {
+    "uh",
+    "um",
+    "hmm",
+    "hm",
+    "mm",
+    "mm hmm",
+    "uh huh",
+    "okay",
+    "ok",
+    "yeah",
+    "yep",
+    "nope",
+    "hello",
+    "hi",
+    "background noise",
+}
+
+
+def is_likely_noise(text: str, active_quiz: bool = False) -> bool:
+    """Reject short conversational/filler transcripts before optional AI routing."""
+    if active_quiz:
+        return False
+    cleaned = " ".join(text.casefold().split()).strip(" .,!?")
+    if not cleaned:
+        return True
+    if cleaned in NOISE_PHRASES:
+        return True
+    words = cleaned.split()
+    return len(words) <= 2 and all(word in {"uh", "um", "hmm", "hm", "mm", "okay", "ok", "yeah"} for word in words)
 
 
 class LanguageModelProvider(Protocol):
@@ -74,6 +106,13 @@ class Understanding:
     source: Any | None = None
 
 
+@dataclass(frozen=True)
+class IntentClassification:
+    label: str
+    confidence: float
+    command: str | None = None
+
+
 def _is_command_valid_in_context(command: str | None, context: dict[str, Any]) -> bool:
     """Validate that the requested command is legal in the current application screen state."""
     if command is None:
@@ -91,6 +130,136 @@ def _is_command_valid_in_context(command: str | None, context: dict[str, Any]) -
     if command in LESSON_ONLY_COMMANDS and not is_lesson:
         return False
     return True
+
+
+def _classifier_prompt(text: str, context: dict[str, Any]) -> str:
+    classifier_context = {
+        "transcript": text,
+        "active_quiz": bool(context.get("active_quiz")),
+        "screen": context.get("screen", "unknown"),
+        "question": context.get("question"),
+        "lesson_topic": context.get("lesson_topic"),
+    }
+    return f"""Classify one voice transcript for Voice2Learn.
+Return JSON only with exactly these keys: label, confidence, command.
+label must be one of: command, quiz_answer, educational_question, unrelated_speech, uncertain.
+confidence must be a number from 0 to 1.
+command must be one of the allowed command IDs or null. Never execute anything.
+Do not assume quizzes are multiple choice: single letters, numbers, subject terms,
+and short free-text phrases are valid quiz answers when a quiz is active.
+Unrelated conversation, TV dialogue, or chatter is unrelated_speech.
+Allowed commands: {", ".join(sorted(ALLOWED_COMMANDS))}.
+Input context: {json.dumps(classifier_context, separators=(",", ":"))}"""
+
+
+def _call_provider_with_timeout(provider: LanguageModelProvider, prompt: str, timeout: int) -> str:
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(provider.answer, prompt)
+    try:
+        return future.result(timeout=timeout)
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
+
+
+def classify_intent(
+    text: str,
+    context: dict[str, Any],
+    provider: LanguageModelProvider | None,
+    timeout: int,
+) -> IntentClassification | None:
+    """Run the opt-in classifier and fail closed for every invalid result."""
+    if not text.strip() or provider is None:
+        return None
+    try:
+        if not provider.configured:
+            return None
+        raw = _call_provider_with_timeout(provider, _classifier_prompt(text, context), timeout)
+        data = json.loads(raw.strip())
+        if not isinstance(data, dict):
+            return None
+        label = data.get("label")
+        confidence = data.get("confidence")
+        command = data.get("command")
+        if label not in {"command", "quiz_answer", "educational_question", "unrelated_speech", "uncertain"}:
+            return None
+        if not isinstance(confidence, (int, float)) or isinstance(confidence, bool) or not 0 <= confidence <= 1:
+            return None
+        if command is not None and (
+            not isinstance(command, str)
+            or command not in ALLOWED_COMMANDS
+            or not _is_command_valid_in_context(command, context)
+        ):
+            return None
+        return IntentClassification(label=label, confidence=float(confidence), command=command)
+    except Exception:
+        return None
+
+
+def resolve_with_classifier(
+    text: str,
+    context: dict[str, Any],
+    deterministic: Interpretation,
+    provider: LanguageModelProvider | None,
+    timeout: int,
+    assistant: Any | None = None,
+) -> Understanding:
+    """Verify deterministic quiz answers and commands without executing actions."""
+    if deterministic.intent == "quiz_answer":
+        result = classify_intent(text, context, provider, timeout)
+        if result is not None and result.label == "unrelated_speech" and result.confidence >= 0.7:
+            return Understanding(
+                Interpretation(intent="noise", confidence=0.0),
+                "noise",
+            )
+        if result is None or result.confidence < 0.7 or result.label == "uncertain":
+            return Understanding(
+                Interpretation(intent="unknown", confidence=0.0),
+                "clarification",
+                clarification="I didn't catch that as an answer. Could you say it again?",
+            )
+        if result.label == "quiz_answer" and context.get("active_quiz") is True:
+            return Understanding(deterministic, "application")
+        if result.label == "educational_question" and result.confidence >= 0.7:
+            return understand(
+                text,
+                context,
+                Interpretation(intent="question", confidence=0.9),
+                provider,
+                assistant=assistant,
+            )
+        if result.label == "command" and result.confidence >= 0.7 and result.command:
+            return Understanding(
+                Interpretation(intent="command", confidence=result.confidence, command=result.command),
+                "application",
+            )
+        return Understanding(
+            Interpretation(intent="unknown", confidence=0.0),
+            "clarification",
+            clarification="I didn't catch that as an answer. Could you say it again?",
+        )
+
+    if deterministic.intent != "command":
+        return Understanding(deterministic, "unsupported")
+
+    if not _is_command_valid_in_context(deterministic.command, context):
+        return Understanding(
+            Interpretation(intent="unknown", confidence=0.0),
+            "clarification",
+            clarification="That command is not available on this screen. Say 'help' for available actions.",
+        )
+
+    result = classify_intent(text, context, provider, timeout)
+    if result is None or result.confidence < 0.7 or result.label in {"uncertain", "unrelated_speech"}:
+        return Understanding(deterministic, "application")
+    if result.label == "command" and result.command == deterministic.command:
+        return Understanding(deterministic, "application")
+    if result.label == "command" and result.command and result.command != deterministic.command:
+        return Understanding(
+            Interpretation(intent="unknown", confidence=0.0),
+            "clarification",
+            clarification=f"Did you mean {deterministic.command.replace('_', ' ').lower()} or {result.command.replace('_', ' ').lower()}?",
+        )
+    return Understanding(deterministic, "application")
 
 
 def _prompt(text: str, context: dict[str, Any]) -> str:
@@ -124,7 +293,7 @@ def _parse(value: str, fallback: Interpretation, context: dict[str, Any] | None 
     command = data.get("command")
     confidence = data.get("confidence")
 
-    if category not in {"application", "learning", "follow_up", "clarification", "unsupported"}:
+    if category not in {"application", "learning", "follow_up", "clarification", "unsupported", "noise"}:
         return None
     if command is not None and command not in ALLOWED_COMMANDS:
         return None
@@ -168,6 +337,12 @@ def understand(
 ) -> Understanding:
     """Use the configured language model fallback only after deterministic handling misses."""
     active_provider = provider if provider is not None else get_default_llm_provider()
+
+    if fallback.intent == "unknown" and is_likely_noise(text, bool(context.get("active_quiz"))):
+        return Understanding(
+            interpretation=Interpretation(intent="noise", confidence=0.0),
+            category="noise",
+        )
 
     # M09: If an educational question is received and a CurriculumAssistant is available,
     # ground the response strictly in retrieved curriculum evidence.

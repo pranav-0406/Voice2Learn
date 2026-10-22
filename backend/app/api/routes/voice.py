@@ -29,8 +29,12 @@ from app.stt.provider import (
     SpeechToTextProvider,
     get_stt_provider,
 )
-from app.voice.interpreter import interpret_text
-from app.voice.understanding import get_default_llm_provider, understand
+from app.voice.interpreter import Interpretation, QUIZ_ANSWER_EXCLUSIONS, _normalise, interpret_text
+from app.voice.understanding import (
+    get_default_llm_provider,
+    resolve_with_classifier,
+    understand,
+)
 
 router = APIRouter(prefix="/voice", tags=["voice"])
 
@@ -139,13 +143,41 @@ def interpret_voice(
 ) -> VoiceInterpretResponse:
     """Classify with fast rules first and optional structured local reasoning second."""
     interpretation = interpret_text(payload.text, payload.context.active_quiz)
-    understanding = understand(
-        payload.text,
-        payload.context.model_dump(),
-        interpretation,
-        get_default_llm_provider(get_settings()),
-        assistant=assistant,
-    ) if interpretation.intent in {"unknown", "question"} else None
+    settings = get_settings()
+    classifier_interpretation = interpretation
+    normalized_text = _normalise(payload.text)
+    if (
+        settings.ai_classifier_enabled
+        and payload.context.active_quiz
+        and interpretation.intent == "unknown"
+        and payload.text.strip()
+        and len(normalized_text) < 2
+        and normalized_text not in QUIZ_ANSWER_EXCLUSIONS
+    ):
+        classifier_interpretation = Interpretation(
+            intent="quiz_answer",
+            confidence=0.8,
+            answer=" ".join(payload.text.strip().split()),
+        )
+    if settings.ai_classifier_enabled and not payload.text.strip():
+        understanding = None
+    elif settings.ai_classifier_enabled and classifier_interpretation.intent in {"quiz_answer", "command"}:
+        understanding = resolve_with_classifier(
+            payload.text,
+            payload.context.model_dump(),
+            classifier_interpretation,
+            get_default_llm_provider(settings),
+            settings.ai_classifier_timeout_seconds,
+            assistant=assistant,
+        )
+    else:
+        understanding = understand(
+            payload.text,
+            payload.context.model_dump(),
+            interpretation,
+            get_default_llm_provider(settings),
+            assistant=assistant,
+        ) if interpretation.intent in {"unknown", "question"} else None
     if understanding:
         interpretation = understanding.interpretation
         category = understanding.category

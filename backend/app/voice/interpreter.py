@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 from typing import Literal
 
-Intent = Literal["command", "quiz_answer", "question", "unknown"]
+Intent = Literal["command", "quiz_answer", "question", "unknown", "noise"]
+QUIZ_ANSWER_EXCLUSIONS = frozenset({"maybe", "i do not know", "not sure"})
 
 COMMANDS = {
     "open dashboard": "OPEN_DASHBOARD",
@@ -341,6 +342,6 @@ def interpret_text(text: str, active_quiz: bool) -> Interpretation:
         return Interpretation(intent="command", confidence=command[1], command=command[0])
     if cleaned.rstrip().endswith("?") or normalised.startswith(QUESTION_STARTERS):
         return Interpretation(intent="question", confidence=0.9)
-    if active_quiz and len(cleaned) >= 2 and normalised not in {"maybe", "i do not know", "not sure"}:
+    if active_quiz and len(cleaned) >= 2 and normalised not in QUIZ_ANSWER_EXCLUSIONS:
         return Interpretation(intent="quiz_answer", confidence=0.8, answer=cleaned)
     return Interpretation(intent="unknown", confidence=0.2)

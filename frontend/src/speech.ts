@@ -2,6 +2,7 @@ import { voiceDiagnostic } from './voiceDiagnostics'
 
 let activeUtterance: SpeechSynthesisUtterance | null = null
 let cachedVoice: SpeechSynthesisVoice | null | undefined = undefined // undefined = not yet resolved
+export type SpeechPlaybackState = 'idle' | 'speaking' | 'paused'
 
 export const speechSupported = () =>
   typeof window !== 'undefined' &&
@@ -164,9 +165,13 @@ export function normalizeEducationalText(text: string): string {
 
 // ─── Core TTS API ─────────────────────────────────────────────────────────────
 
-function notifySpeakingChange(speaking: boolean) {
+function notifySpeechState(state: SpeechPlaybackState) {
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('tts-speaking-change', { detail: { speaking } }))
+    window.dispatchEvent(
+      new CustomEvent('tts-speaking-change', {
+        detail: { speaking: state === 'speaking', state },
+      })
+    )
   }
 }
 
@@ -174,7 +179,21 @@ export function stopSpeaking() {
   if (!speechSupported()) return
   window.speechSynthesis.cancel()
   activeUtterance = null
-  notifySpeakingChange(false)
+  notifySpeechState('idle')
+}
+
+export function pauseSpeaking() {
+  if (!speechSupported() || !activeUtterance || !window.speechSynthesis.speaking) return false
+  window.speechSynthesis.pause()
+  notifySpeechState('paused')
+  return true
+}
+
+export function resumeSpeaking() {
+  if (!speechSupported() || !activeUtterance || !window.speechSynthesis.paused) return false
+  window.speechSynthesis.resume()
+  notifySpeechState('speaking')
+  return true
 }
 
 /**
@@ -193,7 +212,7 @@ export function speakText(text: string, onEnd?: () => void): boolean {
   const utterance = new SpeechSynthesisUtterance(normalised)
   const startedAt = voiceDiagnostic('tts-start')
   activeUtterance = utterance
-  notifySpeakingChange(true)
+  notifySpeechState('speaking')
 
   // Apply voice preference
   const voice = getVoice()
@@ -206,15 +225,23 @@ export function speakText(text: string, onEnd?: () => void): boolean {
   const finish = () => {
     if (activeUtterance === utterance) {
       activeUtterance = null
-      notifySpeakingChange(false)
+      notifySpeechState('idle')
+      voiceDiagnostic('tts-end', startedAt)
+      onEnd?.()
     }
-    voiceDiagnostic('tts-end', startedAt)
-    onEnd?.()
   }
 
+  utterance.onstart = () => notifySpeechState('speaking')
+  utterance.onpause = () => {
+    if (activeUtterance === utterance) notifySpeechState('paused')
+  }
+  utterance.onresume = () => {
+    if (activeUtterance === utterance) notifySpeechState('speaking')
+  }
   utterance.onend = finish
   utterance.onerror = finish
   window.speechSynthesis.speak(utterance)
+  notifySpeechState('speaking')
   return true
 }
 

@@ -21,6 +21,7 @@ from app.voice.understanding import (
     Understanding,
     _parse,
     understand,
+    is_likely_noise,
     _is_command_valid_in_context,
     ALLOWED_COMMANDS,
     QUIZ_ONLY_COMMANDS,
@@ -137,6 +138,21 @@ def test_interpret_keeps_educational_questions_out_of_command_matching(client, s
     assert response.status_code == 200
     assert response.json()["intent"] == "question"
     assert response.json()["command"] is None
+
+
+@pytest.mark.parametrize("spoken", ["uh", "um", "hmm", "okay", "background noise"])
+def test_short_filler_transcripts_are_classified_as_noise(client, spoken: str) -> None:
+    response = client.post("/api/voice/interpret", json={"text": spoken})
+
+    assert response.status_code == 200
+    assert response.json()["intent"] == "noise"
+    assert response.json()["category"] == "noise"
+    assert response.json()["command"] is None
+
+
+def test_noise_heuristic_does_not_discard_quiz_answers() -> None:
+    assert is_likely_noise("okay", active_quiz=False)
+    assert not is_likely_noise("okay", active_quiz=True)
 
 
 def test_structured_provider_result_is_validated_without_allowing_arbitrary_actions() -> None:
