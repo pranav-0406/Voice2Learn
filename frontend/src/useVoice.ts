@@ -44,6 +44,8 @@ export function useVoice(context: VoiceContext = {}) {
   const enabledRef = useRef(false)
   const timer = useRef<number | null>(null)
   const echoTimer = useRef<number | null>(null)
+  const echoWatchdogTimer = useRef<number | null>(null)
+  const recordSegmentRef = useRef<((id: number) => Promise<void>) | null>(null)
   const isEchoMuted = useRef(false)
   const micThreshold = useRef<number>(getStoredMicThreshold())
   const processing = useRef(false)
@@ -84,6 +86,10 @@ export function useVoice(context: VoiceContext = {}) {
     if (activeRecorder?.state === 'recording') activeRecorder.stop()
     release()
     setState('idle')
+    if (!isSpeaking()) {
+      isEchoMuted.current = false
+      setIsEchoGated(false)
+    }
   }, [release])
 
   const recordSegment = useCallback(
@@ -91,10 +97,16 @@ export function useVoice(context: VoiceContext = {}) {
       if (!enabledRef.current || id !== loopId.current || processing.current) return
 
       // Acoustic Echo Gate check: Do not start recording while TTS is active
-      if (
-        typeof window !== 'undefined' &&
-        (isSpeaking() || isEchoMuted.current || window.speechSynthesis?.speaking)
-      ) {
+      const currentlySpeaking = typeof window !== 'undefined' && isSpeaking()
+
+      // Self-healing check: if echo was marked muted but no speech is active
+      // and no decay cooldown timer is ticking, reset the gate immediately
+      if (!currentlySpeaking && isEchoMuted.current && echoTimer.current === null) {
+        isEchoMuted.current = false
+        setIsEchoGated(false)
+      }
+
+      if (currentlySpeaking || isEchoMuted.current) {
         setIsEchoGated(true)
         timer.current = window.setTimeout(() => void recordSegment(id), 250)
         return
@@ -321,6 +333,10 @@ export function useVoice(context: VoiceContext = {}) {
     [context, release]
   )
 
+  useEffect(() => {
+    recordSegmentRef.current = recordSegment
+  }, [recordSegment])
+
   // Listen for TTS speaking changes to enforce Acoustic Echo Gate
   useEffect(() => {
     const handleSpeakingChange = (e: Event) => {
@@ -338,15 +354,40 @@ export function useVoice(context: VoiceContext = {}) {
           recorder.current.stop()
           release()
         }
+
+        // Defensive watchdog: in the rare event that speech engine hangs,
+        // force release after 30 seconds if isSpeaking() is no longer true
+        if (echoWatchdogTimer.current !== null) {
+          window.clearTimeout(echoWatchdogTimer.current)
+        }
+        echoWatchdogTimer.current = window.setTimeout(() => {
+          if (!isSpeaking() && isEchoMuted.current) {
+            console.warn('[useVoice] Echo Guard watchdog: speech engine timed out, releasing gate.')
+            isEchoMuted.current = false
+            setIsEchoGated(false)
+            if (enabledRef.current && !processing.current && recordSegmentRef.current) {
+              void recordSegmentRef.current(loopId.current)
+            }
+          }
+          echoWatchdogTimer.current = null
+        }, 30000)
       } else {
+        // Clear watchdog on speech end
+        if (echoWatchdogTimer.current !== null) {
+          window.clearTimeout(echoWatchdogTimer.current)
+          echoWatchdogTimer.current = null
+        }
+
         // Acoustic decay cooldown after TTS finishes before resuming mic
-        if (echoTimer.current !== null) window.clearTimeout(echoTimer.current)
+        if (echoTimer.current !== null) {
+          window.clearTimeout(echoTimer.current)
+        }
         echoTimer.current = window.setTimeout(() => {
           isEchoMuted.current = false
           setIsEchoGated(false)
           echoTimer.current = null
-          if (enabledRef.current && !processing.current) {
-            void recordSegment(loopId.current)
+          if (enabledRef.current && !processing.current && recordSegmentRef.current) {
+            void recordSegmentRef.current(loopId.current)
           }
         }, ECHO_COOLDOWN_MS)
       }
@@ -355,9 +396,20 @@ export function useVoice(context: VoiceContext = {}) {
     window.addEventListener('tts-speaking-change', handleSpeakingChange)
     return () => {
       window.removeEventListener('tts-speaking-change', handleSpeakingChange)
-      if (echoTimer.current !== null) window.clearTimeout(echoTimer.current)
+      if (echoTimer.current !== null) {
+        window.clearTimeout(echoTimer.current)
+        echoTimer.current = null
+      }
+      if (echoWatchdogTimer.current !== null) {
+        window.clearTimeout(echoWatchdogTimer.current)
+        echoWatchdogTimer.current = null
+      }
+      // If unmounting/cleaning up when speech is not active, ensure echo gate is cleared
+      if (!isSpeaking()) {
+        isEchoMuted.current = false
+      }
     }
-  }, [recordSegment, release])
+  }, [release])
 
   // Listen for user sensitivity threshold updates
   useEffect(() => {

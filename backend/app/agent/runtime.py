@@ -33,10 +33,11 @@ def is_valid_route(url: str | None) -> bool:
     if not url or not isinstance(url, str):
         return False
     clean = url.strip()
-    if clean in ALLOWED_EXACT_ROUTES:
+    base_path = clean.split("?")[0].strip()
+    if base_path in ALLOWED_EXACT_ROUTES:
         return True
-    if any(clean.startswith(p) for p in ALLOWED_ROUTE_PREFIXES):
-        parts = clean.split("/")
+    if any(base_path.startswith(p) for p in ALLOWED_ROUTE_PREFIXES):
+        parts = base_path.split("/")
         if len(parts) == 3 and parts[2].strip() and bool(re.match(r"^[a-zA-Z0-9_-]+$", parts[2])):
             return True
     return False
@@ -48,7 +49,7 @@ Your mission is to understand student natural-language requests and operate the 
 Application Pages:
 - Dashboard: `/dashboard`
 - Interactive Concept Lessons: `/concept/:conceptId` (e.g., `/concept/sci-ch02-c01` for Science Unit 2: Force & Motion)
-- Adaptive Quiz: `/quiz`
+- Adaptive Quiz: `/quiz` or `/quiz?subject=<subject_id>` (where subject_id is science, mathematics, english, or social_science)
 - Student Progress: `/progress`
 
 Class 6 Curriculum Map:
@@ -333,10 +334,20 @@ class AgentRuntime:
 
         # Quiz request
         if "quiz" in prompt_lower:
+            target_subj = (
+                "social_science" if "social" in prompt_lower
+                else "mathematics" if ("math" in prompt_lower or "mathematics" in prompt_lower)
+                else "english" if "english" in prompt_lower
+                else "science" if "science" in prompt_lower
+                else None
+            )
+            quiz_url = f"/quiz?subject={target_subj}" if target_subj else "/quiz"
+            subj_display = target_subj.replace("_", " ").title() if target_subj else "adaptive"
+            msg = f"Here is your {subj_display} quiz. Let's practice!"
             action = AgentAction(
                 action_type=ActionType.NAVIGATE,
-                thought="Student requested adaptive quiz",
-                target_url="/quiz",
+                thought=f"Student requested {subj_display} quiz",
+                target_url=quiz_url,
             )
             return AgentRunResponse(
                 run_id=run_id,
@@ -348,14 +359,14 @@ class AgentRuntime:
                         thought="Task complete",
                         action=AgentAction(
                             action_type=ActionType.COMPLETE_TASK,
-                            thought="Navigated to quiz",
-                            message="Here is your adaptive quiz. Let's practice!",
+                            thought=f"Navigated to {subj_display} quiz",
+                            message=msg,
                             success=True,
                         ),
                     ),
                 ],
-                final_message="Here is your adaptive quiz. Let's practice!",
-                target_url="/quiz",
+                final_message=msg,
+                target_url=quiz_url,
                 total_steps=2,
             )
 

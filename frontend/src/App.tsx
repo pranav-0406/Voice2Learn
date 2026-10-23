@@ -13,6 +13,7 @@ import { QuizView } from './pages/QuizView'
 import { ProgressView } from './pages/ProgressView'
 import { logoutStudent } from './api'
 import type { Learner } from './types'
+import { VoiceProvider } from './voice'
 
 // ─── Storage helpers ─────────────────────────────────────────────────────────
 
@@ -121,9 +122,11 @@ function Shell() {
 export default function App() {
   return (
     <BrowserRouter>
-      <MotionConfig reducedMotion="user">
-        <Shell />
-      </MotionConfig>
+      <VoiceProvider>
+        <MotionConfig reducedMotion="user">
+          <Shell />
+        </MotionConfig>
+      </VoiceProvider>
     </BrowserRouter>
   )
 }

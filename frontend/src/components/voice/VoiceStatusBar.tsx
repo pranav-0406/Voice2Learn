@@ -87,12 +87,13 @@ export function VoiceStatusBar() {
 
             const agentMessage = agentResp.final_message || 'Task processed.'
 
-            // Route validation against allowed routes
+            // Route validation against allowed routes (supports query parameters e.g. /quiz?subject=english)
             const allowedStaticRoutes = ['/dashboard', '/quiz', '/progress', '/login', '/register']
+            const basePath = agentResp.target_url ? agentResp.target_url.split('?')[0].trim() : ''
             const isValidRoute =
               agentResp.target_url &&
-              (allowedStaticRoutes.includes(agentResp.target_url) ||
-                /^\/concept\/[a-zA-Z0-9_-]+$/.test(agentResp.target_url))
+              (allowedStaticRoutes.includes(basePath) ||
+                /^\/concept\/[a-zA-Z0-9_-]+$/.test(basePath))
 
             console.log(`🎙️ [Student Speech]: "${transcript}"`)
             console.log(`🤖 [AI Browser Agent]: Target URL: ${agentResp.target_url || 'None'} | Response: "${agentMessage}"`)
@@ -168,12 +169,31 @@ export function VoiceStatusBar() {
       }
     }
 
+    const handleOpenQuiz = () => {
+      const lower = transcript?.toLowerCase() || ''
+      const targetSubject = lower.includes('social')
+        ? 'social_science'
+        : lower.includes('math')
+        ? 'mathematics'
+        : lower.includes('english')
+        ? 'english'
+        : lower.includes('science')
+        ? 'science'
+        : undefined
+
+      if (targetSubject) {
+        navigate(`/quiz?subject=${targetSubject}`)
+      } else {
+        navigate('/quiz')
+      }
+    }
+
     const actions: Record<string, () => void> = {
       OPEN_DASHBOARD: () => navigate('/dashboard'),
       OPEN_LESSON: () => { void handleOpenLesson() },
       START_LESSON: () => { void handleOpenLesson() },
       SELECT_SUBJECT: () => { void handleOpenLesson() },
-      OPEN_QUIZ: () => navigate('/quiz'),
+      OPEN_QUIZ: handleOpenQuiz,
       SHOW_PROGRESS: () => navigate('/progress'),
       GO_BACK: () => navigate(-1),
       STOP_SPEAKING: stopSpeaking,

@@ -114,6 +114,33 @@ ALIASES: tuple[tuple[str, str], ...] = (
     ("practice quiz", "OPEN_QUIZ"),
     ("take a test", "OPEN_QUIZ"),
     ("practice questions", "OPEN_QUIZ"),
+    ("english quiz", "OPEN_QUIZ"),
+    ("math quiz", "OPEN_QUIZ"),
+    ("mathematics quiz", "OPEN_QUIZ"),
+    ("science quiz", "OPEN_QUIZ"),
+    ("social science quiz", "OPEN_QUIZ"),
+    ("social quiz", "OPEN_QUIZ"),
+    ("quiz in english", "OPEN_QUIZ"),
+    ("quiz in math", "OPEN_QUIZ"),
+    ("quiz in mathematics", "OPEN_QUIZ"),
+    ("quiz in science", "OPEN_QUIZ"),
+    ("quiz in social science", "OPEN_QUIZ"),
+    ("quiz in english subject", "OPEN_QUIZ"),
+    ("quiz in math subject", "OPEN_QUIZ"),
+    ("quiz in science subject", "OPEN_QUIZ"),
+    ("quiz in social science subject", "OPEN_QUIZ"),
+    ("open english quiz", "OPEN_QUIZ"),
+    ("open math quiz", "OPEN_QUIZ"),
+    ("open science quiz", "OPEN_QUIZ"),
+    ("open social science quiz", "OPEN_QUIZ"),
+    ("start english quiz", "OPEN_QUIZ"),
+    ("start math quiz", "OPEN_QUIZ"),
+    ("start science quiz", "OPEN_QUIZ"),
+    ("start social science quiz", "OPEN_QUIZ"),
+    ("take english quiz", "OPEN_QUIZ"),
+    ("take math quiz", "OPEN_QUIZ"),
+    ("take science quiz", "OPEN_QUIZ"),
+    ("take social science quiz", "OPEN_QUIZ"),
     ("read question", "READ_QUESTION"),
     ("read this question", "READ_QUESTION"),
     ("repeat question", "READ_QUESTION"),
@@ -279,6 +306,16 @@ def _paraphrase_command(normalised: str) -> tuple[str, float] | None:
 
     # Politeness and conversational prefix stripping
     conversational_prefixes = (
+        "no, ",
+        "no ",
+        "nah, ",
+        "nah ",
+        "okay, ",
+        "okay ",
+        "ok, ",
+        "ok ",
+        "well, ",
+        "well ",
         "can you please ",
         "could you please ",
         "can you ",
@@ -304,10 +341,19 @@ def _paraphrase_command(normalised: str) -> tuple[str, float] | None:
             target = normalised[len(prefix):].removeprefix("the ").strip()
             if target in {"dashboard", "home", "main page", "main menu", "home screen"}:
                 return "OPEN_DASHBOARD", 0.93
-            if target in {"quiz", "test", "questions", "practice"}:
+            if (
+                target in {"quiz", "test", "questions", "practice"}
+                or target.endswith(" quiz")
+                or target.endswith(" test")
+                or target.startswith("quiz in ")
+                or "quiz" in target
+            ):
                 return "OPEN_QUIZ", 0.93
             if target in {"lesson", "science", "science lesson"}:
                 return "OPEN_LESSON", 0.93
+
+    if normalised.endswith(" quiz") or normalised.startswith("quiz in ") or normalised.endswith(" test"):
+        return "OPEN_QUIZ", 0.95
 
     candidates_by_command: dict[str, float] = {}
     for phrase, command in tuple(COMMANDS.items()) + ALIASES:

@@ -42,7 +42,7 @@ AGENT_TOOLS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "navigate",
-            "description": "Navigate the browser to an internal application URL (e.g. '/concept/sci-ch02-c01', '/dashboard', '/quiz').",
+            "description": "Navigate the browser to an internal application URL (e.g. '/concept/sci-ch02-c01', '/dashboard', '/quiz', '/quiz?subject=english').",
             "parameters": {
                 "type": "object",
                 "properties": {

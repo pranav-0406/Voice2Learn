@@ -1,6 +1,5 @@
 import { voiceDiagnostic } from './voiceDiagnostics'
 
-let activeUtterance: SpeechSynthesisUtterance | null = null
 let cachedVoice: SpeechSynthesisVoice | null | undefined = undefined // undefined = not yet resolved
 
 export const speechSupported = () =>
@@ -164,23 +163,42 @@ export function normalizeEducationalText(text: string): string {
 
 // ─── Core TTS API ─────────────────────────────────────────────────────────────
 
+let activeUtterance: SpeechSynthesisUtterance | null = null
+let isActivelySpeaking = false
+let currentUtteranceId = 0
+
 function notifySpeakingChange(speaking: boolean) {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('tts-speaking-change', { detail: { speaking } }))
   }
 }
 
+/**
+ * Stop any current speech synthesis cleanly and idempotently.
+ * Only emits speaking: false if speech was actively speaking.
+ */
 export function stopSpeaking() {
   if (!speechSupported()) return
-  window.speechSynthesis.cancel()
+  currentUtteranceId += 1
+  const wasSpeaking = isActivelySpeaking
   activeUtterance = null
-  notifySpeakingChange(false)
+  isActivelySpeaking = false
+
+  try {
+    window.speechSynthesis.cancel()
+  } catch (err) {
+    console.warn('[speech] speechSynthesis.cancel error:', err)
+  }
+
+  if (wasSpeaking) {
+    notifySpeakingChange(false)
+  }
 }
 
 /**
  * Speak `text` using the browser's SpeechSynthesis API.
  * Text is normalised for educational pronunciation before speaking.
- * Emits `tts-speaking-change` events for the M06 acoustic echo gate.
+ * Emits `tts-speaking-change` events for the acoustic echo gate.
  *
  * @param text - The educational text to speak.
  * @param onEnd - Optional callback invoked when speaking finishes or errors.
@@ -189,11 +207,14 @@ export function stopSpeaking() {
 export function speakText(text: string, onEnd?: () => void): boolean {
   if (!speechSupported() || !text.trim()) return false
   stopSpeaking()
+
+  currentUtteranceId += 1
+  const utteranceId = currentUtteranceId
+
   const normalised = normalizeEducationalText(text)
   const utterance = new SpeechSynthesisUtterance(normalised)
   const startedAt = voiceDiagnostic('tts-start')
   activeUtterance = utterance
-  notifySpeakingChange(true)
 
   // Apply voice preference
   const voice = getVoice()
@@ -203,21 +224,46 @@ export function speakText(text: string, onEnd?: () => void): boolean {
   utterance.rate = getStoredSpeechRate()
   utterance.pitch = 1.0
 
+  let finished = false
   const finish = () => {
+    if (finished || utteranceId !== currentUtteranceId) return
+    finished = true
     if (activeUtterance === utterance) {
       activeUtterance = null
+    }
+    const wasSpeaking = isActivelySpeaking
+    isActivelySpeaking = false
+    if (wasSpeaking) {
       notifySpeakingChange(false)
     }
     voiceDiagnostic('tts-end', startedAt)
     onEnd?.()
   }
 
+  utterance.onstart = () => {
+    if (utteranceId !== currentUtteranceId || activeUtterance !== utterance) return
+    isActivelySpeaking = true
+    notifySpeakingChange(true)
+  }
+
   utterance.onend = finish
   utterance.onerror = finish
-  window.speechSynthesis.speak(utterance)
-  return true
+
+  try {
+    window.speechSynthesis.speak(utterance)
+    return true
+  } catch (err) {
+    console.error('[speech] speechSynthesis.speak error:', err)
+    finish()
+    return false
+  }
 }
 
-export function isSpeaking() {
-  return speechSupported() && window.speechSynthesis.speaking
+/**
+ * Check if the application is currently speaking an active educational utterance.
+ * Guarded against browser ghost flags where window.speechSynthesis.speaking remains stuck.
+ */
+export function isSpeaking(): boolean {
+  if (!speechSupported()) return false
+  return isActivelySpeaking || activeUtterance !== null
 }
